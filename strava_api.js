@@ -15,7 +15,7 @@ function getActivites(res){
                             +"&before="+text
                             +"&per_page="+per_page;
             
-    
+    console.log(res);
     fetch(activities_link)
         .then((res) => res.json())
         .then(function (data){
@@ -26,41 +26,48 @@ function getActivites(res){
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
+            
             console.log(data);
-            console.log(data[0].start_latlng);
+            //console.log(data[0].start_latlng);
             
             map.setView([data[0].start_latlng[0], data[0].start_latlng[1]], 15);
-            for(var x=0; x<data.length; x++){
-
-                //console.log(data[x].map.summary_polyline)
-                var coordinates = L.Polyline.fromEncoded(data[x].map.summary_polyline).getLatLngs()
-               
-                
-                if(x === 0){
-                    color = "red"; 
-                    weight = 2;
-                    console.log(data[0].start_date_local);
-                }else{
-                    color = "blue"; 
-                    weight = 1;                    
-                }
-
-                L.polyline(
-
-                    coordinates,
-                    {
-                        color: color,
-                        weight: weight,
-                        opacity:.7,
-                        lineJoin:'round'
-                    }
-
-                ).addTo(map)
-            }
+            // Render the table
+            const container = document.getElementById('table-container');
+            const table = generateTable(data);
+            if (table) container.appendChild(table);
+//            for(var x=0; x<data.length; x++){
+//
+//                //console.log(data[x].map.summary_polyline)
+//                var coordinates = L.Polyline.fromEncoded(data[x].map.summary_polyline).getLatLngs()
+//               
+//                
+//                if(x === 0){
+//                    color = "red"; 
+//                    weight = 2;
+//                    console.log(data[0].start_date_local);
+//                }else{
+//                    color = "blue"; 
+//                    weight = 1;                    
+//                }
+//
+//                L.polyline(
+//
+//                    coordinates,
+//                    {
+//                        color: color,
+//                        weight: weight,
+//                        opacity:.7,
+//                        lineJoin:'round'
+//                    }
+//
+//                ).addTo(map)
+//            }
 
         }
         )
 }
+
+
 
     
 function reAuthorize() {
