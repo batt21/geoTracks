@@ -2,8 +2,19 @@
 const auth_link = "https://www.strava.com/oauth/token"
  
 function getActivites(res){
+//    const d = new Date();
+//    const formatter = new Intl.DateTimeFormat('en-US', { year: 'numeric', month: '2-digit', day: '2-digit',   hour: '2-digit', minute: '2-digit', second: '2-digit' });
+//    var text = formatter.format(d);
 
-    const activities_link = `https://www.strava.com/api/v3/athlete/activities?access_token=${res.access_token}&startDateLocal=2025-01-01T00:00:00+01:00Z`
+    var now = moment().format("YYYY-MM-DDTHH:MM:SS");
+    var d=new Date(now);
+    var text = d.getTime()/1000;    
+    var per_page = 50;
+    const activities_link = "https://www.strava.com/api/v3/athlete/activities?"
+                            +"access_token="+res.access_token
+                            +"&before="+text
+                            +"&per_page="+per_page;
+            
     
     fetch(activities_link)
         .then((res) => res.json())
@@ -28,6 +39,7 @@ function getActivites(res){
                 if(x === 0){
                     color = "red"; 
                     weight = 2;
+                    console.log(data[0].start_date_local);
                 }else{
                     color = "blue"; 
                     weight = 1;                    
