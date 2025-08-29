@@ -3,22 +3,25 @@ const auth_link = "https://www.strava.com/oauth/token"
  
 function getActivites(res){
 
-    const activities_link = `https://www.strava.com/api/v3/athlete/activities?access_token=${res.access_token}&startDateLocal=2025-01-01T00:00:00+01:00`
+    const activities_link = `https://www.strava.com/api/v3/athlete/activities?access_token=${res.access_token}&startDateLocal=2025-01-01T00:00:00+01:00Z`
     
     fetch(activities_link)
         .then((res) => res.json())
         .then(function (data){
             var color;
             var weight;
-            var map = L.map('map').setView([45.486640067047055, 12.25674924342232], 11);
+            var map = L.map('map')
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
-            console.log(data.length);
+            console.log(data);
+            console.log(data[0].start_latlng);
+            
+            map.setView([data[0].start_latlng[0], data[0].start_latlng[1]], 15);
             for(var x=0; x<data.length; x++){
 
-                console.log(data[x].map.summary_polyline)
+                //console.log(data[x].map.summary_polyline)
                 var coordinates = L.Polyline.fromEncoded(data[x].map.summary_polyline).getLatLngs()
                
                 

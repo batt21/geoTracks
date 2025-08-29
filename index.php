@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html>
 <head> 
@@ -20,7 +22,7 @@ crossorigin=""></script>
     <div id="map"></div>
 
 
-<script src="strava_api.js?a=2233"></script>
+<script src="strava_api.js?<?php echo strtotime("now");?>"></script>
 </body>
 
 </html>
