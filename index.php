@@ -28,7 +28,6 @@ crossorigin=""></script>
 
 <script src="strava_api.js?<?php echo strtotime("now");?>"></script>
 <script src="moment.min.js"></script>
-<script src="script.js"></script>
 </body>
 
 </html>
