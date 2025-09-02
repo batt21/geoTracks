@@ -53,7 +53,7 @@ function getActivites(res){
 
                     coordinates,
                     {
-                        color: blue,
+                        color: "blue",
                         weight: 1,
                         opacity:.7,
                         lineJoin:'round'
@@ -93,6 +93,7 @@ function getActivity(res, id){
 
         ).addTo(map) //}
     });
+    window.scrollTo(0,0)
 }
 // Function to generate the table
 function generateTable(data) {
@@ -104,11 +105,13 @@ function generateTable(data) {
   const headerRow = document.createElement('tr');
 //  const keys = Object.keys(data[0]); // Get keys from the first object
 //  console.log(keys);
-  const keys = ["id","name","type","sport_type","start_date_local","distance",]; // Get keys from the first object
+  const keys = ["name","type","sport_type","start_date_local","distance",]; // Get keys from the first object
   keys.forEach(key => {
     const th = document.createElement('th');
-    th.textContent = key.charAt(0).toUpperCase() + key.slice(1); // Capitalize header
-    headerRow.appendChild(th);
+
+        th.textContent = key.charAt(0).toUpperCase() + key.slice(1); // Capitalize header
+        headerRow.appendChild(th);
+
   });
   table.appendChild(headerRow);
   // Generate table rows
@@ -116,17 +119,11 @@ function generateTable(data) {
     const row = document.createElement('tr');
     keys.forEach(key => {
       const td = document.createElement('td');
-      if(key == 'id'){
-        const x = document.createElement("A");
-        const t = document.createTextNode(item[key]);
-        x.setAttribute("onclick", "activity(event)");
-        x.setAttribute("id", item[key]);
-        x.setAttribute("href", "#"+item[key]);
-        x.appendChild(t);
-        td.appendChild(x);
-      }else{
+      if(key === 'name'){
+          td.appendChild(createLink(item, key));    
+      }else{     
         td.textContent = item[key] || ""; // Fill empty fields with blank
-      } 
+      }
       row.appendChild(td);
     });
     table.appendChild(row);
@@ -134,8 +131,14 @@ function generateTable(data) {
   return table;
 } 
 
-function createLink(id) {
-  
+function createLink(item, key) {
+    const x = document.createElement("A");
+    const t = document.createTextNode(item[key]);
+    x.setAttribute("onclick", "activity(event)");
+    x.setAttribute("id", item['id']);
+    x.setAttribute("href", "#"+item['id']);
+    x.appendChild(t);
+    return x;    
 }
 
 function reAuthorize() {
@@ -179,6 +182,8 @@ function singleAuthorize(id) {
 
     }).then(res => res.json())
                .then(res => getActivity(res, id));
+       
+    
 }
 
 
