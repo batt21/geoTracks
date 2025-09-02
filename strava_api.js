@@ -39,16 +39,6 @@ function getActivites(res){
                 //console.log(data[x].map.summary_polyline)
                 var coordinates = L.Polyline.fromEncoded(data[x].map.summary_polyline).getLatLngs()
                
-                
-//                if(x === 0){
-//                    color = "red"; 
-//                    weight = 2;
-//                    console.log(data[0].start_date_local);
-//                }else{
-//                    color = "blue"; 
-//                    weight = 1;                    
-//                }
-
                 L.polyline(
 
                     coordinates,
@@ -71,7 +61,10 @@ function getActivity(res, id){
     
     const activity_link = 'https://www.strava.com/api/v3/activities/'+id+'?access_token='+res.access_token;
     
-            
+//    map.eachLayer(function (layer) {
+//         map.removeLayer(layer);
+//    });
+    
     fetch(activity_link)
     .then((res) => res.json())
     .then(function (data){
@@ -94,6 +87,10 @@ function getActivity(res, id){
         ).addTo(map) //}
     });
     window.scrollTo(0,0)
+    
+    
+    
+    
 }
 // Function to generate the table
 function generateTable(data) {
