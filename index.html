@@ -44,6 +44,12 @@
       0%   { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+    a.show-track.active-track {
+        color: #e63946 !important; /* rosso Strava */
+        font-weight: bold;
+        text-decoration: underline;
+    }
+
   </style>
 </head>
 <body class="bg-light">
@@ -64,6 +70,7 @@
             <tr>
               <th>Nome</th>
               <th>Distanza (km)</th>
+              <th>Tipo</th>
               <th>Data</th>
               <th>Durata (min)</th>
             </tr>
@@ -102,6 +109,9 @@ $(document).ready(function () {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
 
+  var polylines = {};       // tutte le tracce salvate per ID
+  var selectedPolyline = null; // traccia attualmente evidenziata
+
   // Loader overlay
   $(document).ajaxStart(function () {
     $("#loader-overlay").show();
@@ -110,16 +120,15 @@ $(document).ready(function () {
     $("#loader-overlay").hide();
   });
 
-  // Inizializza DataTable (vuoto all'inizio)
   var table = $('#activities-table').DataTable({
     language: {
       url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/it-IT.json'
     },
     pageLength: 10
   });
- 
+
   function getActivities(res, page) {
-    var per_page = 50;
+    var per_page = 10;
     var activities_link =
       "https://www.strava.com/api/v3/athlete/activities?" +
       "access_token=" + res.access_token +
@@ -129,49 +138,82 @@ $(document).ready(function () {
     $.getJSON(activities_link)
       .done(function (data) {
         if (data.length !== 0) {
-          // Centra la mappa sulla prima attività
-          //
-            //console.log(data);
           $.each(data, function (index, activity) {
             if (activity.map && activity.map.summary_polyline) {
-              // Disegna la traccia sulla mappa
               var coordinates = L.Polyline.fromEncoded(activity.map.summary_polyline).getLatLngs();
-              console.log(coordinates);
-              L.polyline(coordinates, {
+              var polyline = L.polyline(coordinates, {
                 color: 'blue',
-                weight: 1,
+                weight: 2,
                 opacity: 0.7,
                 lineJoin: 'round'
               }).addTo(map);
-               map.setView([data[index].start_latlng[0], data[index].start_latlng[1]], 13);
+
+              polylines[activity.id] = polyline;
+
+              // Centra la mappa solo sulla prima attività
+              if (page === 1 && index === 0) {
+                map.fitBounds(polyline.getBounds());
+              }
             }
-            
-            // Aggiungi riga a DataTable
+
             var distanceKm = (activity.distance / 1000).toFixed(2);
             var movingTimeMin = Math.round(activity.moving_time / 60);
             var d = new Date(activity.start_date_local);
-            
-            var startDate = d.getFullYear() + "-" + ("0" + d.getMonth()).slice(-2) + "-" + ("0"+(d.getDate()+1)).slice(-2) +  " " + 
-                    ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+            var type = activity.type;
+
+            var startDate = d.getFullYear() + "-" + ("0" + (d.getMonth()+1)).slice(-2) + "-" + 
+                            ("0"+d.getDate()).slice(-2) + " " + 
+                            ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+
+            var nameLink = `<a href="#" class="show-track" data-id="${activity.id}">${activity.name}</a>`;
 
             table.row.add([
-              activity.name,
+              nameLink,
               distanceKm,
+              type,
               startDate,
               movingTimeMin
             ]).draw(false);
           });
-          
-          // Carica pagina successiva
+
           getActivities(res, page + 1);
         }
-        
       })
       .fail(function (jqXHR, textStatus, errorThrown) {
         console.error("Errore durante il caricamento delle attività:", textStatus, errorThrown);
         alert("Impossibile caricare le attività. Riprova più tardi.");
       });
   }
+
+  // Evento click sui link della tabella
+  $('#activities-table tbody').on('click', 'a.show-track', function (e) {
+    e.preventDefault();
+    var id = $(this).data('id');
+
+    if (polylines[id]) {
+      
+     // mostra solo la nuova traccia
+      selectedPolyline = polylines[id];
+      
+      $.each(polylines, function(key, polyline){
+          map.removeLayer(polyline);
+      });
+      
+      
+
+      
+      
+      selectedPolyline.setStyle({ color: 'red', weight: 4 });
+      selectedPolyline.addTo(map);
+
+      // centra la mappa
+      map.fitBounds(selectedPolyline.getBounds());
+      
+      // evidenzia il link attivo
+        $('a.show-track').removeClass('active-track');
+        $(this).addClass('active-track');
+    }
+  });
 
   function reAuthorize() {
     $.ajax({
@@ -185,9 +227,7 @@ $(document).ready(function () {
       }
     })
       .done(function (res) {
-        console.log("Autenticazione riuscita", res);
-        getActivities(res, 1);
-        //map.setView([data[0].start_latlng[0], data[0].start_latlng[1]], 13);
+        getActivities(res, 1);        
       })
       .fail(function (jqXHR, textStatus, errorThrown) {
         console.error("Errore durante l'autenticazione:", textStatus, errorThrown);
@@ -197,6 +237,8 @@ $(document).ready(function () {
 
   reAuthorize();
 });
+
+
 </script>
 </body>
 </html>
