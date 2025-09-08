@@ -23,6 +23,7 @@ crossorigin=""></script>
     <div id="map"></div>
   <div class="container">
     <h2>All tracks</h2>
+    <div id="pager-container"></div>
     <div id="table-container"></div>
   </div>
 

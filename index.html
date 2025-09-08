@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mappa Strava + Tracce</title>
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <link href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" rel="stylesheet">
+
+  <!-- DataTables Bootstrap 5 -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css"/>
+
+  <style>
+    #map {
+      height: 400px;
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    /* Overlay con loader */
+    #loader-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 9999;
+    }
+    #loader {
+      border: 8px solid #f3f3f3;
+      border-top: 8px solid #e63946; /* rosso Strava */
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 1s linear infinite;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      margin: -30px 0 0 -30px;
+    }
+    @keyframes spin {
+      0%   { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body class="bg-light">
+
+<div class="container-fluid p-3">
+  <h1 class="mb-3 text-center">Strava Tracker</h1>
+
+  <!-- Mappa -->
+  <div id="map"></div>
+
+  <!-- Tabella attività -->
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h5 class="card-title">Tracce</h5>
+      <div class="table-responsive">
+        <table id="activities-table" class="table table-striped table-bordered align-middle">
+          <thead class="table-dark">
+            <tr>
+              <th>Nome</th>
+              <th>Distanza (km)</th>
+              <th>Data</th>
+              <th>Durata (min)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Le attività saranno inserite qui via jQuery -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Overlay loader -->
+<div id="loader-overlay">
+  <div id="loader"></div>
+</div>
+
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Leaflet -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<!-- Polyline decoder di Leaflet -->
+<script src="http://localhost/geoTracks/Polyline.encoded.js"></script>
+<!-- DataTables -->
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+$(document).ready(function () {
+  const auth_link = "https://www.strava.com/oauth/token";
+  var map = L.map('map');
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  // Loader overlay
+  $(document).ajaxStart(function () {
+    $("#loader-overlay").show();
+  });
+  $(document).ajaxStop(function () {
+    $("#loader-overlay").hide();
+  });
+
+  // Inizializza DataTable (vuoto all'inizio)
+  var table = $('#activities-table').DataTable({
+    language: {
+      url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/it-IT.json'
+    },
+    pageLength: 10
+  });
+ 
+  function getActivities(res, page) {
+    var per_page = 50;
+    var activities_link =
+      "https://www.strava.com/api/v3/athlete/activities?" +
+      "access_token=" + res.access_token +
+      "&per_page=" + per_page +
+      "&page=" + page;
+
+    $.getJSON(activities_link)
+      .done(function (data) {
+        if (data.length !== 0) {
+          // Centra la mappa sulla prima attività
+          //
+            //console.log(data);
+          $.each(data, function (index, activity) {
+            if (activity.map && activity.map.summary_polyline) {
+              // Disegna la traccia sulla mappa
+              var coordinates = L.Polyline.fromEncoded(activity.map.summary_polyline).getLatLngs();
+              console.log(coordinates);
+              L.polyline(coordinates, {
+                color: 'blue',
+                weight: 1,
+                opacity: 0.7,
+                lineJoin: 'round'
+              }).addTo(map);
+               map.setView([data[index].start_latlng[0], data[index].start_latlng[1]], 13);
+            }
+            
+            // Aggiungi riga a DataTable
+            var distanceKm = (activity.distance / 1000).toFixed(2);
+            var movingTimeMin = Math.round(activity.moving_time / 60);
+            var d = new Date(activity.start_date_local);
+            
+            var startDate = d.getFullYear() + "-" + ("0" + d.getMonth()).slice(-2) + "-" + ("0"+(d.getDate()+1)).slice(-2) +  " " + 
+                    ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+
+            table.row.add([
+              activity.name,
+              distanceKm,
+              startDate,
+              movingTimeMin
+            ]).draw(false);
+          });
+          
+          // Carica pagina successiva
+          getActivities(res, page + 1);
+        }
+        
+      })
+      .fail(function (jqXHR, textStatus, errorThrown) {
+        console.error("Errore durante il caricamento delle attività:", textStatus, errorThrown);
+        alert("Impossibile caricare le attività. Riprova più tardi.");
+      });
+  }
+
+  function reAuthorize() {
+    $.ajax({
+      type: 'POST',
+      url: auth_link,
+      data: {
+        client_id: '170267',
+        client_secret: '2a763ae8a5952c806420030f883b6d9c611c31a0',
+        refresh_token: '1d09f95e93975a8d9d131e481b15b01ef63428b6',
+        grant_type: 'refresh_token'
+      }
+    })
+      .done(function (res) {
+        console.log("Autenticazione riuscita", res);
+        getActivities(res, 1);
+        //map.setView([data[0].start_latlng[0], data[0].start_latlng[1]], 13);
+      })
+      .fail(function (jqXHR, textStatus, errorThrown) {
+        console.error("Errore durante l'autenticazione:", textStatus, errorThrown);
+        alert("Autenticazione fallita. Controlla le tue credenziali.");
+      });
+  }
+
+  reAuthorize();
+});
+</script>
+</body>
+</html>

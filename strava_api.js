@@ -5,55 +5,74 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
  
-function getActivites(res){
+function getActivites(res, page){
 //    const d = new Date();
 //    const formatter = new Intl.DateTimeFormat('en-US', { year: 'numeric', month: '2-digit', day: '2-digit',   hour: '2-digit', minute: '2-digit', second: '2-digit' });
 //    var text = formatter.format(d);
 
-    var now = moment().format("YYYY-MM-DDTHH:MM:SS");
-    var d=new Date(now);
-    var text = d.getTime()/1000;    
+//    var now = moment().format("YYYY-MM-DDTHH:MM:SS");
+//    var d=new Date(now);
+//    var text = d.getTime()/1000;    
     var per_page = 50;
     
-    const activities_link = "https://www.strava.com/api/v3/athlete/activities?"
-                            +"access_token="+res.access_token
-                            +"&before="+text
-                            +"&per_page="+per_page;
-       
+    var activities_link;
+    
+    
+    
     console.log(res);
-    fetch(activities_link)
-        .then((res) => res.json())
-        .then(function (data){
-            var color;
-            var weight;
-            console.log(data);
-            //console.log(data[0].start_latlng);
-            
-            map.setView([data[0].start_latlng[0], data[0].start_latlng[1]], 15);
-            // Render the table
-            const container = document.getElementById('table-container');
-            const table = generateTable(data);
-            if (table) container.appendChild(table);
-            for(var x=0; x<data.length; x++){
+//    var c = 1;
+//    while(c <= 1){
+        activities_link = "https://www.strava.com/api/v3/athlete/activities?"
+                            +"access_token="+res.access_token
+                            //+"&before="+text
+                            +"&per_page="+per_page
+                            +"&page="+page;
+                    
+       
+        
+        fetch(activities_link)
+            .then((response) => response.json())
+            .then(function (data){
 
-                //console.log(data[x].map.summary_polyline)
-                var coordinates = L.Polyline.fromEncoded(data[x].map.summary_polyline).getLatLngs()
-               
-                L.polyline(
+                if(data.length !== 0){
+                    
+                    //console.log(data);                    
+                    map.setView([data[0].start_latlng[0], data[0].start_latlng[1]], 15);
 
-                    coordinates,
-                    {
-                        color: "blue",
-                        weight: 1,
-                        opacity:.7,
-                        lineJoin:'round'
+                    for(var x=0; x<data.length; x++){
+
+                        //console.log(data[x].map.summary_polyline)
+                        var coordinates = L.Polyline.fromEncoded(data[x].map.summary_polyline).getLatLngs()
+
+                        L.polyline(
+
+                            coordinates,
+                            {
+                                color: "blue",
+                                weight: 1,
+                                opacity:.7,
+                                lineJoin:'round'
+                            }
+
+                        ).addTo(map);
                     }
-
-                ).addTo(map)
+                   
+                }
+                // Render the table
+                const pagerContainer = document.getElementById('pager-container');
+                const pager = generatePager(page + 1);
+                if (pager) pagerContainer.appendChild(pager);
+                
+                const container = document.getElementById('table-container');
+                const table = generateTable(data);
+                
+                if (table) container.appendChild(table);
+                // return data;
             }
-
-        }
-        )
+                    )
+        c++;
+        //console.log(d);
+//    }
 }
 
 function getActivity(res, id){
@@ -61,31 +80,40 @@ function getActivity(res, id){
     
     const activity_link = 'https://www.strava.com/api/v3/activities/'+id+'?access_token='+res.access_token;
     
-//    map.eachLayer(function (layer) {
-//         map.removeLayer(layer);
-//    });
-    
-    fetch(activity_link)
-    .then((res) => res.json())
-    .then(function (data){
-       map.setView([data.start_latlng[0], data.start_latlng[1]], 15);
-       
-
-        console.log(data.map.summary_polyline)
-        var coordinates = L.Polyline.fromEncoded(data.map.summary_polyline).getLatLngs()
-
-        L.polyline(
-
-            coordinates,
-            {
-                color: 'red',
-                weight: '2',
-                opacity:.7,
-                lineJoin:'round'
-            }
-
-        ).addTo(map) //}
+    map.eachLayer(function (layer) {
+         map.removeLayer(layer);
     });
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+   
+        fetch(activity_link)
+            .then((res) => res.json())
+            .then(function (data){
+               
+               map.setView([data.start_latlng[0], data.start_latlng[1]], 15);
+
+               
+                    console.log(data.map.summary_polyline)
+                    var coordinates = L.Polyline.fromEncoded(data.map.summary_polyline).getLatLngs()
+
+                    L.polyline(
+
+                        coordinates,
+                        {
+                            color: 'red',
+                            weight: '2',
+                            opacity:.7,
+                            lineJoin:'round'
+                        }
+
+                    ).addTo(map) 
+                
+        })
+        
+        
+    
     window.scrollTo(0,0)
     
     
@@ -94,38 +122,47 @@ function getActivity(res, id){
 }
 // Function to generate the table
 function generateTable(data) {
-  if (!data || data.length === 0) return "No data available.";
-  // Create the table element
-  const table = document.createElement('table');
-  
-  // Generate table headers
-  const headerRow = document.createElement('tr');
-//  const keys = Object.keys(data[0]); // Get keys from the first object
-//  console.log(keys);
-  const keys = ["name","type","sport_type","start_date_local","distance",]; // Get keys from the first object
-  keys.forEach(key => {
-    const th = document.createElement('th');
+        if (!data || data.length === 0) return "No data available.";
+                
+        // Create the table element
+        const table = document.createElement('table');
 
-        th.textContent = key.charAt(0).toUpperCase() + key.slice(1); // Capitalize header
-        headerRow.appendChild(th);
+        // Generate table headers
+        const headerRow = document.createElement('tr');
+      //  const keys = Object.keys(data[0]); // Get keys from the first object
+      //  console.log(keys);
+        const keys = ["name","type","sport_type","start_date_local","distance",]; // Get keys from the first object
+        
 
-  });
-  table.appendChild(headerRow);
-  // Generate table rows
-  data.forEach(item => {
-    const row = document.createElement('tr');
-    keys.forEach(key => {
-      const td = document.createElement('td');
-      if(key === 'name'){
-          td.appendChild(createLink(item, key));    
-      }else{     
-        td.textContent = item[key] || ""; // Fill empty fields with blank
-      }
-      row.appendChild(td);
-    });
-    table.appendChild(row);
-  });
-  return table;
+
+        keys.forEach(key => {
+            const th = document.createElement('th');
+
+              th.textContent = key.charAt(0).toUpperCase() + key.slice(1); // Capitalize header
+              headerRow.appendChild(th);
+
+        });
+
+
+
+        headerRow.setAttribute("colspan","3");
+
+        table.appendChild(headerRow);
+        // Generate table rows
+        data.forEach(item => {
+          const row = document.createElement('tr');
+          keys.forEach(key => {
+            const td = document.createElement('td');
+            if(key === 'name'){
+                td.appendChild(createLink(item, key));    
+            }else{     
+              td.textContent = item[key] || ""; // Fill empty fields with blank
+            }
+            row.appendChild(td);
+          });
+          table.appendChild(row);
+        });
+        return table;
 } 
 
 function createLink(item, key) {
@@ -138,7 +175,27 @@ function createLink(item, key) {
     return x;    
 }
 
-function reAuthorize() {
+function createLinkHeaderBefore(id) {
+    const x = document.createElement("A");
+    const t = document.createTextNode("< prima");
+    x.setAttribute("onclick", "moveBefore(event)");
+    x.setAttribute("id", id);
+    x.setAttribute("href", "#"+id);
+    x.appendChild(t);
+    return x;    
+}
+
+function createLinkHeaderAfter(id) {
+    const x = document.createElement("A");
+    const t = document.createTextNode("dopo >");
+    x.setAttribute("onclick", "moveAfter(event)");
+    x.setAttribute("id", id);
+    x.setAttribute("href", "#"+id);
+    x.appendChild(t);
+    return x;    
+}
+
+function reAuthorize(p = 1) {
     fetch(auth_link, {
         method: 'post',
 
@@ -156,7 +213,7 @@ function reAuthorize() {
         })
 
     }).then(res => res.json())
-       .then(res => getActivites(res));
+       .then(res => getActivites(res, p));
               
 }
 
@@ -191,5 +248,30 @@ function activity(event){
     singleAuthorize(id);
 }
 
+function moveBefore(event){
+    var element = event.target;
+    var p = element.getAttribute("id");
+    reAuthorize(p)
+}
+
+function moveAfter(event){
+    var element = event.target;
+    var p = element.getAttribute("id");
+    reAuthorize(p);
+}
+
+
+function generatePager(p){
+        const table = document.createElement('table');
+        const tr = document.createElement('tr')
+        const thIniziale = document.createElement('th');
+        thIniziale.appendChild(createLinkHeaderBefore(p - 1));
+        tr.appendChild(thIniziale);
+        const thFinale = document.createElement('th');
+        thFinale.appendChild(createLinkHeaderAfter(p));                
+        tr.appendChild(thFinale);
+        table.appendChild(tr);
+        return table;
+}
 reAuthorize();
 
