@@ -58,7 +58,10 @@
   <h1 class="mb-3 text-center">Strava Tracker</h1>
 
   <!-- Mappa -->
-  <div id="map"></div>
+  <div class="d-flex">
+  <div id="map" style="flex: 2; height: 400px;"></div>
+  <div id="chart-container" style="flex: 1; height: 400px;"></div>
+</div>
 
   <!-- Tabella attività -->
   <div class="card shadow-sm">
@@ -100,9 +103,13 @@
 <!-- DataTables -->
 <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://code.highcharts.com/highcharts.js"></script>
+
 
 <script>
 $(document).ready(function () {
+  var access_token = null;
+
   const auth_link = "https://www.strava.com/oauth/token";
   var map = L.map('map');
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -133,12 +140,13 @@ $(document).ready(function () {
       "https://www.strava.com/api/v3/athlete/activities?" +
       "access_token=" + res.access_token +
       "&per_page=" + per_page +
-      "&page=" + page;
-
+      "&page=" + 1;
+ 
     $.getJSON(activities_link)
       .done(function (data) {
         if (data.length !== 0) {
           $.each(data, function (index, activity) {
+              console.log(data);
             if (activity.map && activity.map.summary_polyline) {
               var coordinates = L.Polyline.fromEncoded(activity.map.summary_polyline).getLatLngs();
               var polyline = L.polyline(coordinates, {
@@ -176,7 +184,7 @@ $(document).ready(function () {
             ]).draw(false);
           });
 
-          getActivities(res, page + 1);
+          //getActivities(res, page + 1);
         }
       })
       .fail(function (jqXHR, textStatus, errorThrown) {
@@ -184,6 +192,13 @@ $(document).ready(function () {
         alert("Impossibile caricare le attività. Riprova più tardi.");
       });
   }
+  
+  function formatTime(seconds) {
+    const totalMinutes = Math.floor(seconds / 60);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours}:${minutes.toString().padStart(2,'0')}`;
+}
 
   // Evento click sui link della tabella
   $('#activities-table tbody').on('click', 'a.show-track', function (e) {
@@ -212,6 +227,47 @@ $(document).ready(function () {
       // evidenzia il link attivo
         $('a.show-track').removeClass('active-track');
         $(this).addClass('active-track');
+        var activityId = $(this).data('id');
+        // --- Richiesta API /routes/{id}/streams ---
+        $.ajax({
+          url: "https://www.strava.com/api/v3/activities/"+activityId+"/streams",
+          type: 'GET',
+          data: {
+            access_token: access_token, // token ottenuto da reAuthorize()
+            keys: 'heartrate,time',          // chiediamo battiti e tempo
+            key_by_type: true
+          },
+          success: function(streams) {
+              console.log(streams);
+            if (!streams.heartrate) {
+              $('#chart-container').html('<p class="text-warning">Nessun dato battiti disponibile</p>');
+              return;
+            }
+
+            const times = streams.time.data;
+            const heartrates = streams.heartrate.data;
+
+            Highcharts.chart('chart-container', {
+              chart: { type: 'line' },
+              title: { text: `Traccia ${activityId}` },
+              xAxis: {     categories: times.map(formatTime), // conversione hh:mm
+                title: { text: 'Tempo (minuti)' },
+                tickInterval: 10, // ogni 30 minuti
+                labels: {
+                  formatter: function() {
+                    return this.value; // valore già in minuti
+                  }
+                } },
+              yAxis: { title: { text: 'BPM' } },
+              series: [{ name: 'Frequenza cardiaca', data: heartrates }],
+              credits: { enabled: false }
+            });
+          },
+          error: function(jqXHR, textStatus, errorThrown) {
+            console.error("Errore API Strava streams:", textStatus, errorThrown);
+            $('#chart-container').html('<p class="text-danger">Impossibile caricare i battiti cardiaci</p>');
+          }
+        });
     }
   });
 
@@ -227,6 +283,7 @@ $(document).ready(function () {
       }
     })
       .done(function (res) {
+        access_token = res.access_token; // salvo il token globalmente
         getActivities(res, 1);        
       })
       .fail(function (jqXHR, textStatus, errorThrown) {
