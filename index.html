@@ -59,7 +59,7 @@
 
   <!-- Mappa -->
   <div class="d-flex">
-  <div id="map" style="flex: 2; height: 400px;"></div>
+  <div id="map" style="flex: 1; height: 400px;"></div>
   <div id="chart-container" style="flex: 1; height: 400px;"></div>
 </div>
 
@@ -173,7 +173,7 @@ $(document).ready(function () {
                             ("0"+d.getDate()).slice(-2) + " " + 
                             ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
 
-            var nameLink = `<a href="#" class="show-track" data-id="${activity.id}">${activity.name}</a>`;
+            var nameLink = `<a href="#" class="show-track" data-id="${activity.id}" data-date="${startDate}">${activity.name}</a>`;
 
             table.row.add([
               nameLink,
@@ -218,7 +218,7 @@ $(document).ready(function () {
 
       
       
-      selectedPolyline.setStyle({ color: 'red', weight: 4 });
+      selectedPolyline.setStyle({ color: 'red', weight: 1 });
       selectedPolyline.addTo(map);
 
       // centra la mappa
@@ -228,38 +228,87 @@ $(document).ready(function () {
         $('a.show-track').removeClass('active-track');
         $(this).addClass('active-track');
         var activityId = $(this).data('id');
+        var activityDate = $(this).data('date');
         // --- Richiesta API /routes/{id}/streams ---
         $.ajax({
           url: "https://www.strava.com/api/v3/activities/"+activityId+"/streams",
           type: 'GET',
           data: {
             access_token: access_token, // token ottenuto da reAuthorize()
-            keys: 'heartrate,time',          // chiediamo battiti e tempo
+            keys: 'heartrate,time,velocity_smooth',         // chiediamo battiti e tempo
             key_by_type: true
           },
           success: function(streams) {
-              console.log(streams);
-            if (!streams.heartrate) {
-              $('#chart-container').html('<p class="text-warning">Nessun dato battiti disponibile</p>');
+            console.log(streams);
+            if (!streams.heartrate && !streams.velocity_smooth) {
+              $('#chart-container').html('<p class="text-warning">Nessun dato disponibile</p>');
               return;
             }
 
             const times = streams.time.data;
-            const heartrates = streams.heartrate.data;
-
+            const heartrates = streams.heartrate ? streams.heartrate.data : [];
+            const speeds = streams.velocity_smooth 
+            ? streams.velocity_smooth.data.map(v => Math.round(v * 3.6)) // da m/s a km/h
+            : [];
+            
+            // Marker evidenziatore sulla mappa
+            let highlightMarker = L.circleMarker([0,0], {
+                radius: 6,
+                color: '#ff0000',
+                fillColor: '#ff0000',
+                opacity: 0,
+                fillOpacity: 0
+                }).addTo(map);
+            
             Highcharts.chart('chart-container', {
-              chart: { type: 'line' },
-              title: { text: `Traccia ${activityId}` },
-              xAxis: {     categories: times.map(formatTime), // conversione hh:mm
-                title: { text: 'Tempo (minuti)' },
-                tickInterval: 10, // ogni 30 minuti
-                labels: {
-                  formatter: function() {
-                    return this.value; // valore già in minuti
-                  }
-                } },
-              yAxis: { title: { text: 'BPM' } },
-              series: [{ name: 'Frequenza cardiaca', data: heartrates }],
+              chart: { type: 'spline',
+                        zoomType: 'x',   // zoom solo sull’asse tempo
+                        panning: true,
+                        panKey: 'shift'  // tieni premuto Shift per muovere il grafico
+              },
+              title: { text: `${activityDate}` },
+              xAxis: {
+                categories: times.map(formatTime),
+                title: { text: 'Tempo (hh:mm)' },
+                tickInterval: 10
+              },
+              yAxis: [{
+                title: { text: 'Frequenza cardiaca (BPM)' },
+                min: 0
+              }, {
+                title: { text: 'Velocità (km/h)' },
+                opposite: true,
+                min: 0
+              }],
+              tooltip: {
+                shared: true,
+                crosshairs: true
+              },
+              plotOptions: {
+                series: {
+                    point: {
+                        events: {
+                            mouseOver: function () {
+                            const index = this.index;
+                                if (selectedPolyline) {
+                                const latlngs = selectedPolyline.getLatLngs();
+                                    if (latlngs[index]) {
+                                        highlightMarker.setLatLng(latlngs[index]);
+                                        highlightMarker.setStyle({ opacity: 1, fillOpacity: 0.9 });
+                                    }
+                                }
+                            },
+                            mouseOut: function () {
+                            highlightMarker.setStyle({ opacity: 0, fillOpacity: 0 });
+                            }
+                        }
+                    }   
+                }
+                },
+              series: [
+                { name: 'Frequenza cardiaca', data: heartrates, yAxis: 0, color: '#e63946' },
+                { name: 'Velocità', data: speeds, yAxis: 1, color: '#1d3557' }
+              ],
               credits: { enabled: false }
             });
           },
