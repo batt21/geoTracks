@@ -145,8 +145,9 @@ $(document).ready(function () {
     $.getJSON(activities_link)
       .done(function (data) {
         if (data.length !== 0) {
+            console.log(data);
           $.each(data, function (index, activity) {
-              console.log(data);
+              
             if (activity.map && activity.map.summary_polyline) {
               var coordinates = L.Polyline.fromEncoded(activity.map.summary_polyline).getLatLngs();
               var polyline = L.polyline(coordinates, {
@@ -210,32 +211,28 @@ $(document).ready(function () {
      // mostra solo la nuova traccia
       selectedPolyline = polylines[id];
       
-      $.each(polylines, function(key, polyline){
-          map.removeLayer(polyline);
-      });
-      
+            $.each(polylines, function(key, polyline){
+                map.removeLayer(polyline);
+            });
       
 
-      
-      
-      selectedPolyline.setStyle({ color: 'red', weight: 1 });
-      selectedPolyline.addTo(map);
-
-      // centra la mappa
-      map.fitBounds(selectedPolyline.getBounds());
-      
+        map.fitBounds(selectedPolyline.getBounds());
+ 
       // evidenzia il link attivo
         $('a.show-track').removeClass('active-track');
         $(this).addClass('active-track');
         var activityId = $(this).data('id');
         var activityDate = $(this).data('date');
+        var activeStreamPolyline = null;
+
+
         // --- Richiesta API /routes/{id}/streams ---
         $.ajax({
           url: "https://www.strava.com/api/v3/activities/"+activityId+"/streams",
           type: 'GET',
           data: {
             access_token: access_token, // token ottenuto da reAuthorize()
-            keys: 'heartrate,time,velocity_smooth',         // chiediamo battiti e tempo
+            keys: 'latlng,heartrate,time,velocity_smooth,altitude',
             key_by_type: true
           },
           success: function(streams) {
@@ -244,12 +241,33 @@ $(document).ready(function () {
               $('#chart-container').html('<p class="text-warning">Nessun dato disponibile</p>');
               return;
             }
+            
 
+
+            
+            // Rimuovi la polyline precedente se esiste
+            if (activeStreamPolyline) {
+              map.removeLayer(activeStreamPolyline);
+            }
+            
+            var coordinate = streams.latlng.data
+            activeStreamPolyline = L.polyline(coordinate, {
+                color: 'blue',
+                weight: 2,
+                opacity: 0.7,
+                lineJoin: 'round'
+              }).addTo(map);
+
+
+              
+            polylines[activityId] = activeStreamPolyline;
             const times = streams.time.data;
             const heartrates = streams.heartrate ? streams.heartrate.data : [];
             const speeds = streams.velocity_smooth 
             ? streams.velocity_smooth.data.map(v => Math.round(v * 3.6)) // da m/s a km/h
             : [];
+            const altitudes = streams.altitude ? streams.altitude.data : [];
+            const distance = streams.distance ? streams.distance.data : [];
             
             // Marker evidenziatore sulla mappa
             let highlightMarker = L.circleMarker([0,0], {
@@ -259,6 +277,25 @@ $(document).ready(function () {
                 opacity: 0,
                 fillOpacity: 0
                 }).addTo(map);
+                
+            // Calcolo data/ora per ogni punto
+            const startDateObj = new Date(activityDate);
+            const pointDateTimes = times.map(sec => {
+              let d = new Date(startDateObj.getTime() + sec * 1000);
+              return d.toLocaleString('it-IT'); // formato leggibile es. 11/09/2025, 14:35:22
+            });
+
+
+
+            const grades = [];
+            for (let i = 1; i < coordinate.length; i++) {
+              const dist = distance[i]-distance[i-1];
+              const deltaAlt = altitudes[i] - altitudes[i-1];
+              const slope = dist > 0 ? (deltaAlt / dist) * 100 : 0;
+              grades.push(parseFloat(slope.toFixed(1)));
+            }
+            // Allinea la lunghezza: aggiungiamo un 0 iniziale
+            grades.unshift(0);        
             
             Highcharts.chart('chart-container', {
               chart: { type: 'spline',
@@ -279,11 +316,37 @@ $(document).ready(function () {
                 title: { text: 'Velocità (km/h)' },
                 opposite: true,
                 min: 0
+              }, {
+                title: { text: 'Altitudine (m)' },
+                min: 0,
+                gridLineDashStyle: 'Dash'
+              },{
+                title: { text: 'Pendenza (%)' },
+                opposite: true,
+                min: -20,
+                max: 20
               }],
-              tooltip: {
-                shared: true,
-                crosshairs: true
-              },
+                tooltip: {
+                  shared: true,
+                  crosshairs: true,
+                  formatter: function () {
+                    const index = this.points[0].point.index;
+                    let s = `<b>${pointDateTimes[index]}</b><br/>`;
+
+                    this.points.forEach(function (point) {
+                      if (point.series.name === 'Frequenza cardiaca') {
+                        s += `${point.series.name}: ${point.y} BPM<br/>`;
+                      } else if (point.series.name === 'Velocità') {
+                        s += `${point.series.name}: ${point.y} km/h<br/>`;
+                      } else if (point.series.name === 'Altitudine') {
+                        s += `${point.series.name}: ${point.y} m<br/>`;
+                      }else if (point.series.name === 'Pendenza') {
+                        s += `${point.series.name}: ${point.y} %<br/>`;
+                      }
+                    });
+                    return s;
+                  }
+                },
               plotOptions: {
                 series: {
                     point: {
@@ -291,7 +354,7 @@ $(document).ready(function () {
                             mouseOver: function () {
                             const index = this.index;
                                 if (selectedPolyline) {
-                                const latlngs = selectedPolyline.getLatLngs();
+                                const latlngs = coordinate;
                                     if (latlngs[index]) {
                                         highlightMarker.setLatLng(latlngs[index]);
                                         highlightMarker.setStyle({ opacity: 1, fillOpacity: 0.9 });
@@ -307,7 +370,9 @@ $(document).ready(function () {
                 },
               series: [
                 { name: 'Frequenza cardiaca', data: heartrates, yAxis: 0, color: '#e63946' },
-                { name: 'Velocità', data: speeds, yAxis: 1, color: '#1d3557' }
+                { name: 'Velocità', data: speeds, yAxis: 1, color: '#1d3557' },
+                { name: 'Altitudine', data: altitudes, yAxis: 2, color: '#2a9d8f' },
+                { name: 'Pendenza', data: grades, yAxis: 3, color: '#ff9900' }
               ],
               credits: { enabled: false }
             });
