@@ -232,7 +232,7 @@ $(document).ready(function () {
           type: 'GET',
           data: {
             access_token: access_token, // token ottenuto da reAuthorize()
-            keys: 'latlng,heartrate,time,velocity_smooth,altitude',
+            keys: 'latlng,heartrate,time,velocity_smooth,altitude,grade_smooth',
             key_by_type: true
           },
           success: function(streams) {
@@ -268,6 +268,7 @@ $(document).ready(function () {
             : [];
             const altitudes = streams.altitude ? streams.altitude.data : [];
             const distance = streams.distance ? streams.distance.data : [];
+            const grade = streams.grade ? streams.grade.data : [];
             
             // Marker evidenziatore sulla mappa
             let highlightMarker = L.circleMarker([0,0], {
@@ -286,16 +287,7 @@ $(document).ready(function () {
             });
 
 
-
-            const grades = [];
-            for (let i = 1; i < coordinate.length; i++) {
-              const dist = distance[i]-distance[i-1];
-              const deltaAlt = altitudes[i] - altitudes[i-1];
-              const slope = dist > 0 ? (deltaAlt / dist) * 100 : 0;
-              grades.push(parseFloat(slope.toFixed(1)));
-            }
-            // Allinea la lunghezza: aggiungiamo un 0 iniziale
-            grades.unshift(0);        
+      
             
             Highcharts.chart('chart-container', {
               chart: { type: 'spline',
@@ -325,7 +317,8 @@ $(document).ready(function () {
                 opposite: true,
                 min: -20,
                 max: 20
-              }],
+              }
+          ],
                 tooltip: {
                   shared: true,
                   crosshairs: true,
@@ -372,7 +365,7 @@ $(document).ready(function () {
                 { name: 'Frequenza cardiaca', data: heartrates, yAxis: 0, color: '#e63946' },
                 { name: 'Velocità', data: speeds, yAxis: 1, color: '#1d3557' },
                 { name: 'Altitudine', data: altitudes, yAxis: 2, color: '#2a9d8f' },
-                { name: 'Pendenza', data: grades, yAxis: 3, color: '#ff9900' }
+                { name: 'Pendenza', data: grade, yAxis: 3, color: '#ff9900' }
               ],
               credits: { enabled: false }
             });
