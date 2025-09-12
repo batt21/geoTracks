@@ -204,7 +204,7 @@ $(document).ready(function () {
     function saveActivities(activities) {
       const saved = JSON.parse(localStorage.getItem("savedActivities")) || [];
       const savedIds = saved.map(a => a.id);
-
+    }
   // loader / log
   $(document).ajaxStart(() => $("#loader-overlay").show());
   $(document).ajaxStop(() => $("#loader-overlay").hide());
@@ -280,7 +280,7 @@ $(document).ready(function () {
 }
 
 
-
+  }
 
   // Aggiunge solo nuove attività in localStorage e ritorna l'array delle attività aggiunte
   function addNewActivitiesToStorage(activities) {
