@@ -1,60 +1,51 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mappa Strava + Tracce</title>
 
   <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
+  <!-- Leaflet -->
   <link href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" rel="stylesheet">
 
   <!-- DataTables Bootstrap 5 -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css"/>
- 
+
   <style>
-    #map {
-      height: 400px;
-      width: 100%;
-      margin-bottom: 20px;
-    }
-    /* Overlay con loader */
+    #map { height: 400px; width: 100%; margin-bottom: 20px; }
     #loader-overlay {
-      display: none;
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5);
-      z-index: 9999;
+      display: none; position: fixed; top:0; left:0; width:100%; height:100%;
+      background: rgba(0,0,0,0.5); z-index: 9999;
     }
     #loader {
-      border: 8px solid #f3f3f3;
-      border-top: 8px solid #e63946; /* rosso Strava */
-      border-radius: 50%;
-      width: 60px;
-      height: 60px;
-      animation: spin 1s linear infinite;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      margin: -30px 0 0 -30px;
+      border: 8px solid #f3f3f3; border-top: 8px solid #e63946; border-radius:50%;
+      width:60px; height:60px; animation: spin 1s linear infinite;
+      position:absolute; top:50%; left:50%; margin:-30px 0 0 -30px;
     }
-    @keyframes spin {
-      0%   { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
+    @keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
+
     a.show-track.active-track {
-        color: #e63946 !important; /* rosso Strava */
-        font-weight: bold;
-        text-decoration: underline;
-    }
-    #activities-table th, 
-    #activities-table td {
-      max-width: 120px;
+      color: #e63946 !important;
+      font-weight: bold;
+      text-decoration: underline;
     }
 
+    /* Tabella compatta e no-wrap */
+    #activities-table {
+      table-layout: auto;
+    }
+    #activities-table th, #activities-table td {
+      white-space: nowrap;
+      font-size: 0.85rem;
+      padding: 4px 6px;
+    }
 
+    /* filtro inline */
+    .filter-row { display:flex; align-items:center; gap:8px; }
+    .filter-row .form-select { width: auto; }
   </style>
 </head>
 <body class="bg-light">
@@ -62,77 +53,81 @@
 <div class="container-fluid p-3">
   <h1 class="mb-3 text-center">Strava Tracker</h1>
 
-  <!-- Mappa -->
   <div class="d-flex">
-  <div id="map" style="flex: 1; height: 400px;"></div>
-  <div id="chart-container" style="flex: 1; height: 400px;"></div>
-</div>
+    <div id="map" style="flex: 1; height: 400px;"></div>
+    <div id="chart-container" style="flex: 1; height: 400px;"></div>    
+  </div>
 
-  <!-- Tabella attività -->
-  <div class="card shadow-sm">
+  <div class="card shadow-sm mt-3">
+  
     <div class="card-body">
-      <h5 class="card-title">Tracce</h5>
-      <div class="mb-2 d-flex align-items-center">
-  <label for="activityFilter" class="form-label me-2 mb-0">Filtra per tipo:</label>
-  <select id="activityFilter" class="form-select w-auto">
-    <option value="">Tutti</option>
-    <option>AlpineSki</option>
-    <option>BackcountrySki</option>
-    <option>Badminton</option>
-    <option>Canoeing</option>
-    <option>Crossfit</option>
-    <option>EBikeRide</option>
-    <option>Elliptical</option>
-    <option>EMountainBikeRide</option>
-    <option>Golf</option>
-    <option>GravelRide</option>
-    <option>Handcycle</option>
-    <option>HighIntensityIntervalTraining</option>
-    <option>Hike</option>
-    <option>IceSkate</option>
-    <option>InlineSkate</option>
-    <option>Kayaking</option>
-    <option>Kitesurf</option>
-    <option>MountainBikeRide</option>
-    <option>NordicSki</option>
-    <option>Pickleball</option>
-    <option>Pilates</option>
-    <option>Racquetball</option>
-    <option>Ride</option>
-    <option>RockClimbing</option>
-    <option>RollerSki</option>
-    <option>Rowing</option>
-    <option>Run</option>
-    <option>Sail</option>
-    <option>Skateboard</option>
-    <option>Snowboard</option>
-    <option>Snowshoe</option>
-    <option>Soccer</option>
-    <option>Squash</option>
-    <option>StairStepper</option>
-    <option>StandUpPaddling</option>
-    <option>Surfing</option>
-    <option>Swim</option>
-    <option>TableTennis</option>
-    <option>Tennis</option>
-    <option>TrailRun</option>
-    <option>Velomobile</option>
-    <option>VirtualRide</option>
-    <option>VirtualRow</option>
-    <option>VirtualRun</option>
-    <option>Walk</option>
-    <option>WeightTraining</option>
-    <option>Wheelchair</option>
-    <option>Windsurf</option>
-    <option>Workout</option>
-    <option>Yoga</option>
-  </select>
-</div>
+      <div id="log-box" style="margin-bottom: 10px; max-height:200px; overflow-y:auto; font-family:monospace; font-size:12px; border:1px solid #ccc; padding:5px; margin-top:10px; background:#f9f9f9;"></div>
 
-</div>
+      
 
-      <div class="table-responsive card-body">
-        <table id="activities-table" class="table table-sm table-striped table-bordered align-middle text-nowrap">
+      <!-- Filtro inline per tipo attività -->
+      <div class="mb-2 filter-row">
+        <label for="activityFilter" class="form-label mb-0">Filtra per tipo:</label>
+        <select id="activityFilter" class="form-select">
+          <option value="">Tutti</option>
+          <option>AlpineSki</option>
+          <option>BackcountrySki</option>
+          <option>Badminton</option>
+          <option>Canoeing</option>
+          <option>Crossfit</option>
+          <option>EBikeRide</option>
+          <option>Elliptical</option>
+          <option>EMountainBikeRide</option>
+          <option>Golf</option>
+          <option>GravelRide</option>
+          <option>Handcycle</option>
+          <option>HighIntensityIntervalTraining</option>
+          <option>Hike</option>
+          <option>IceSkate</option>
+          <option>InlineSkate</option>
+          <option>Kayaking</option>
+          <option>Kitesurf</option>
+          <option>MountainBikeRide</option>
+          <option>NordicSki</option>
+          <option>Pickleball</option>
+          <option>Pilates</option>
+          <option>Racquetball</option>
+          <option>Ride</option>
+          <option>RockClimbing</option>
+          <option>RollerSki</option>
+          <option>Rowing</option>
+          <option>Run</option>
+          <option>Sail</option>
+          <option>Skateboard</option>
+          <option>Snowboard</option>
+          <option>Snowshoe</option>
+          <option>Soccer</option>
+          <option>Squash</option>
+          <option>StairStepper</option>
+          <option>StandUpPaddling</option>
+          <option>Surfing</option>
+          <option>Swim</option>
+          <option>TableTennis</option>
+          <option>Tennis</option>
+          <option>TrailRun</option>
+          <option>Velomobile</option>
+          <option>VirtualRide</option>
+          <option>VirtualRow</option>
+          <option>VirtualRun</option>
+          <option>Walk</option>
+          <option>WeightTraining</option>
+          <option>Wheelchair</option>
+          <option>Windsurf</option>
+          <option>Workout</option>
+          <option>Yoga</option>
+        </select>
+
+        <!-- Bottone opzionale per svuotare la cache (non richiesto, ma comodo) -->
+        <button id="clearCacheBtn" class="btn btn-outline-secondary btn-sm">Svuota cache</button>
+      </div>
+
+      <div class="table-responsive">
+        <table id="activities-table" class="table table-sm table-striped table-bordered align-middle">
           <thead class="table-dark">
             <tr>
               <th>Nome</th>
@@ -144,33 +139,26 @@
               <th>FC media (BPM)</th>
             </tr>
           </thead>
-          <tbody>
-            <!-- Le attività saranno inserite qui via jQuery -->
-          </tbody>
+          <tbody></tbody>
         </table>
       </div>
+
     </div>
   </div>
 </div>
 
-<!-- Overlay loader -->
-<div id="loader-overlay">
-  <div id="loader"></div>
-</div>
+<!-- Loader overlay -->
+<div id="loader-overlay"><div id="loader"></div></div>
 
-<!-- jQuery -->
+<!-- Scripts -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<!-- Leaflet -->
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<!-- Polyline decoder di Leaflet -->
+<!-- Polyline decoder se serve (nel tuo ambiente) -->
 <script src="http://localhost/geoTracks/Polyline.encoded.js"></script>
-<!-- DataTables -->
 <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
 <script src="https://code.highcharts.com/highcharts.js"></script>
-
 
 <script>
 $(document).ready(function () {
@@ -198,12 +186,11 @@ $(document).ready(function () {
   
 
   var table = $('#activities-table').DataTable({
-    language: {
-      url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/it-IT.json'
-    },
-    pageLength: 10
+    language: { url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/it-IT.json' },
+    pageLength: 10,
+    order: [[3, 'desc']] // colonna 3 = "Data", ordinamento decrescente
   });
-  
+
   $('#activityFilter').on('change', function () {
   const val = $(this).val();
   table.column(2) // colonna "Tipo"
@@ -218,15 +205,27 @@ $(document).ready(function () {
       const saved = JSON.parse(localStorage.getItem("savedActivities")) || [];
       const savedIds = saved.map(a => a.id);
 
-      // filtra solo le nuove attività
-      const newActivities = activities.filter(a => !savedIds.includes(a.id));
+  // loader / log
+  $(document).ajaxStart(() => $("#loader-overlay").show());
+  $(document).ajaxStop(() => $("#loader-overlay").hide());
 
-      if (newActivities.length > 0) {
-        const updated = saved.concat(newActivities);
-        localStorage.setItem("savedActivities", JSON.stringify(updated));
-      }
+  function logMessage(msg) {
+    const logBox = document.getElementById("log-box");
+    if (!logBox) return; // se l'HTML non contiene #log-box, skip
+    const time = new Date().toLocaleTimeString();
+    logBox.innerHTML += `[${time}] ${msg}<br>`;
+    logBox.scrollTop = logBox.scrollHeight;
+  }
 
-      return newActivities;
+  // =========================
+  // LocalStorage helpers
+  // =========================
+  function getSavedActivities() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    } catch (e) {
+      console.warn("Errore parsing savedActivities:", e);
+      return [];
     }
     
     function loadSavedActivities() {
@@ -283,280 +282,342 @@ $(document).ready(function () {
 
 
 
-  function getActivities(res, page) {
-    var per_page = 10;
-    var activities_link =
-      "https://www.strava.com/api/v3/athlete/activities?" +
-      "access_token=" + res.access_token +
-      "&per_page=" + per_page +
-      "&page=" + page;
- 
-    $.getJSON(activities_link)
+  // Aggiunge solo nuove attività in localStorage e ritorna l'array delle attività aggiunte
+  function addNewActivitiesToStorage(activities) {
+    if (!Array.isArray(activities) || activities.length === 0) return [];
+    const saved = getSavedActivities();
+    const savedIds = new Set(saved.map(a => a.id));
+    const toAdd = [];
+    for (const a of activities) {
+      if (!savedIds.has(a.id)) {
+        toAdd.push(pickActivityForStorage(a));
+      }
+    }
+    if (toAdd.length > 0) {
+      const updated = saved.concat(toAdd);
+      setSavedActivities(updated);
+    }
+    return toAdd;
+  }
+
+  function clearSavedActivities() {
+    localStorage.removeItem(STORAGE_KEY);
+    logMessage("Cache svuotata");
+  }
+
+  // =========================
+  // Render su mappa e tabella
+  // =========================
+  function renderActivityOnMap(activity, fitIfFirst = true) {
+    if (!activity.map || !activity.map.summary_polyline) return;
+    try {
+      const coords = L.Polyline.fromEncoded(activity.map.summary_polyline).getLatLngs();
+      const poly = L.polyline(coords, { color: 'blue', weight: 2, opacity: 0.7, lineJoin: 'round' }).addTo(map);
+      polylines[activity.id] = poly;
+      // se è la prima polyline aggiunta, fitBounds
+      if (fitIfFirst && Object.keys(polylines).length === 1) {
+        map.fitBounds(poly.getBounds());
+      }
+    } catch (e) {
+      console.warn("Errore decodifica polyline activity", activity.id, e);
+    }
+  }
+
+  function renderActivityOnTable(activity) {
+    const distanceKm = (activity.distance / 1000).toFixed(2);
+    const movingTimeMin = Math.round(activity.moving_time / 60);
+    // uso start_date_local bruto come data per data-date, ma mostro in formato leggibile
+    const rawDate = activity.start_date_local;
+    const d = new Date(rawDate);
+    const startDateFormatted = isNaN(d.getTime()) ? rawDate : `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const nameLink = `<a href="#" class="show-track" data-id="${activity.id}" data-date="${rawDate}">${escapeHtml(activity.name)}</a>`;
+    const avgSpeed = activity.average_speed ? (activity.average_speed * 3.6).toFixed(1) : "-";
+    const avgHR = activity.average_heartrate ? activity.average_heartrate.toFixed(0) : "-";
+
+    table.row.add([ nameLink, distanceKm, activity.type, startDateFormatted, movingTimeMin, avgSpeed, avgHR ]).draw(false);
+  }
+
+  // Utility per evitare XSS nel nome
+  function escapeHtml(str) {
+    if (!str) return "";
+    return String(str).replace(/[&<>"'`=\/]/g, function(s) {
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;'})[s];
+    });
+  }
+
+  // Carica cache e renderizza subito per UX reattiva
+  function loadAndRenderCache() {
+    const saved = getSavedActivities();
+    if (saved.length > 0) {
+      logMessage(`Cache trovata: ${saved.length} attività`);
+      // render senza fitBounds (fit solo alla prima activity se desiderato)
+      saved.forEach((act, idx) => {
+        renderActivityOnMap(act, idx === 0);
+        renderActivityOnTable(act);
+      });
+    } else {
+      logMessage("Cache vuota");
+    }
+  }
+
+  // =========================
+  // API Strava: paginazione + after
+  // =========================
+  function getActivities(res, page = 1, after = null) {
+    const per_page = 30; // puoi adattare
+    let url = `https://www.strava.com/api/v3/athlete/activities?access_token=${res.access_token}&per_page=${per_page}&page=${page}`;
+    if (after && Number(after) > 0) url += `&after=${after}`;
+
+    logMessage(`Chiamata API Strava: page=${page} ${after ? `(after=${after})` : '(tutte)'}`);
+
+    $.getJSON(url)
       .done(function (data) {
-        if (data.length !== 0) {
-            console.log(data);
-        // 🔹 Salva e filtra solo nuove attività
-        const newActivities = saveActivities(data);
-        
-          $.each(newActivities, function (index, activity) {
-              
-            if (activity.map && activity.map.summary_polyline) {
-              var coordinates = L.Polyline.fromEncoded(activity.map.summary_polyline).getLatLngs();
-              var polyline = L.polyline(coordinates, {
-                color: 'blue',
-                weight: 2,
-                opacity: 0.7,
-                lineJoin: 'round'
-              }).addTo(map);
-
-              polylines[activity.id] = polyline;
-
-              // Centra la mappa solo sulla prima attività
-              if (page === 1 && index === 0) {
-                map.fitBounds(polyline.getBounds());
-              }
-            }
-
-            var distanceKm = (activity.distance / 1000).toFixed(2);
-            var movingTimeMin = Math.round(activity.moving_time / 60);
-            var d = new Date(activity.start_date_local);
-            var type = activity.type;
-
-            var startDate = d.getFullYear() + "-" + ("0" + (d.getMonth()+1)).slice(-2) + "-" + 
-                            ("0"+d.getDate()).slice(-2) + " " + 
-                            ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
-
-            var nameLink = `<a href="#" class="show-track" data-id="${activity.id}" data-date="${startDate}">${activity.name}</a>`;
-
-            // velocità media
-            var avgSpeed = activity.average_speed ? (activity.average_speed * 3.6).toFixed(1) : "-";
-
-            // frequenza cardiaca media
-            var avgHR = activity.average_heartrate ? activity.average_heartrate.toFixed(0) : "-";
-
-            table.row.add([
-              nameLink,
-              distanceKm,
-              type,
-              startDate,
-              movingTimeMin,
-              avgSpeed,
-              avgHR
-            ]).draw(false);
-
-          });
-
-          getActivities(res, page + 1);
+        if (!data || data.length === 0) {
+          logMessage("Nessuna attività ricevuta su questa pagina");
+          return;
         }
+        logMessage(`Ricevute ${data.length} attività (page ${page})`);
+        // salviamo solo le nuove attività in cache e renderizziamo quelle nuove
+        const newActs = addNewActivitiesToStorage(data);
+        if (newActs.length > 0) {
+          logMessage(`Aggiunte ${newActs.length} attività alla cache`);
+          newActs.forEach(a => { renderActivityOnMap(a); renderActivityOnTable(a); });
+        } else {
+          logMessage("Nessuna delle attività ricevute era nuova");
+        }
+        // continua paginazione
+        // se la pagina ha meno risultati di per_page probabilmente fine, ma proviamo comunque a richiedere la successiva
+        getActivities(res, page + 1, after);
       })
       .fail(function (jqXHR, textStatus, errorThrown) {
-        console.error("Errore durante il caricamento delle attività:", textStatus, errorThrown);
-        alert("Impossibile caricare le attività. Riprova più tardi.");
+        logMessage(`Errore API: ${textStatus}`);
+        console.error("getActivities fail:", textStatus, errorThrown);
       });
   }
-  
+
+  // Decide cosa scaricare: tutto o solo dopo l'ultima attività in cache
+  function fetchNewActivities(res) {
+    const latestTs = getLatestSavedTimestamp();
+    if (latestTs === 0) {
+      logMessage("Cache vuota → scarico tutte le attività");
+      getActivities(res, 1, null);
+    } else {
+      logMessage(`Ultima attività in cache (unix): ${latestTs} → scarico solo attività successive`);
+      getActivities(res, 1, latestTs);
+    }
+  }
+
+  // =========================
+  // Streams & grafico (click sulla tabella)
+  // =========================
+  // click link in tabella per mostrare traccia / chart
+  $('#activities-table tbody').on('click', 'a.show-track', function (e) {
+    e.preventDefault();
+    const activityId = $(this).data('id');
+    const activityStartDateRaw = $(this).data('date'); // start_date_local ISO
+
+    if (!activityId) return;
+    selectedActivityId = activityId;
+
+    
+    // rimuove tutte le polylines dalla mappa e svuota l’oggetto polylines
+    for (const id in polylines) {
+      if (polylines[id] && map.hasLayer(polylines[id])) {
+        map.removeLayer(polylines[id]);
+      }
+    }
+    // svuota l’oggetto
+    polylines = {};
+
+
+    // aggiungi la summary polyline (se presente nel cache) oppure verrà aggiunta dopo fetch streams
+    if (polylines[activityId]) {
+      polylines[activityId].addTo(map);
+      map.fitBounds(polylines[activityId].getBounds());
+    }
+
+    // fetch streams per activity
+    fetchActivityStreams(activityId, activityStartDateRaw);
+    // evidenzia link attivo
+    $('a.show-track').removeClass('active-track');
+    $(this).addClass('active-track');
+  });
+
+  // Richiesta streams (latlng, time, heartrate, velocity_smooth, altitude, grade_smooth)
+  function fetchActivityStreams(activityId, startDateISO) {
+    if (!access_token) {
+      logMessage("Token non disponibile. Riprovare l'autenticazione.");
+      return;
+    }
+    const keys = 'latlng,heartrate,time,velocity_smooth,altitude,grade_smooth,grade,distance';
+    $.ajax({
+      url: `https://www.strava.com/api/v3/activities/${activityId}/streams`,
+      type: 'GET',
+      data: { access_token: access_token, keys: keys, key_by_type: true },
+      success: function (streams) {
+        if (!streams || (!streams.time && !streams.latlng)) {
+          logMessage("Streams non disponibili per questa attività");
+          $('#chart-container').html('<p class="text-warning">Nessun dato disponibile</p>');
+          return;
+        }
+        logMessage(`Streams ricevuti: tipi = ${Object.keys(streams).join(', ')}`);
+
+        // rimuovi polyline stream precedente
+        if (activeStreamPolyline && map.hasLayer(activeStreamPolyline)) map.removeLayer(activeStreamPolyline);
+
+        // costruisci la polyline ad alta risoluzione dal latlng (se presente)
+        const coordinate = (streams.latlng && streams.latlng.data) ? streams.latlng.data : [];
+        if (coordinate.length > 0) {
+          activeStreamPolyline = L.polyline(coordinate, { color: 'blue', weight: 2, opacity: 0.9 }).addTo(map);
+          polylines[activityId] = activeStreamPolyline;
+          try { map.fitBounds(activeStreamPolyline.getBounds()); } catch (e) { /* ignore */ }
+        }
+
+        // prepara i dati per il grafico
+        const times = streams.time && streams.time.data ? streams.time.data : [];
+        const heartrates = streams.heartrate && streams.heartrate.data ? streams.heartrate.data : [];
+        const speeds = streams.velocity_smooth && streams.velocity_smooth.data
+                       ? streams.velocity_smooth.data.map(v => Math.round(v * 3.6))
+                       : [];
+        const altitudes = streams.altitude && streams.altitude.data ? streams.altitude.data : [];
+        const grade = streams.grade_smooth && streams.grade_smooth.data ? streams.grade_smooth.data
+                    : (streams.grade && streams.grade.data ? streams.grade.data : []);
+        // distance optional
+        const distances = streams.distance && streams.distance.data ? streams.distance.data : [];
+
+        renderActivityChart({ times, heartrates, speeds, altitudes, grade, distances }, startDateISO, coordinate);
+      },
+      error: function (jqXHR, textStatus, errorThrown) {
+        logMessage(`Errore fetching streams: ${textStatus}`);
+        console.error("fetchActivityStreams error:", textStatus, errorThrown);
+      }
+    });
+  }
+
+  // Render grafico Highcharts + highlight sulla mappa
+  function renderActivityChart(streamsObj, activityStartISO, coordinate) {
+    const times = streamsObj.times || [];
+    const heartrates = streamsObj.heartrates || [];
+    const speeds = streamsObj.speeds || [];
+    const altitudes = streamsObj.altitudes || [];
+    const grade = streamsObj.grade || [];
+
+    // timestamps leggibili (usando start_date_local come riferimento)
+    const startDateObj = new Date(activityStartISO);
+    const pointDateTimes = times.map(sec => {
+      const d = new Date(startDateObj.getTime() + sec * 1000);
+      return d.toLocaleString('it-IT');
+    });
+
+    // crea o riusa highlight marker
+    if (!highlightMarker) {
+      highlightMarker = L.circleMarker([0, 0], { radius: 6, color: '#ff0000', fillColor: '#ff0000', opacity: 0, fillOpacity: 0 }).addTo(map);
+    }
+
+    Highcharts.chart('chart-container', {
+      chart: { type: 'spline', zoomType: 'x', panning: true, panKey: 'shift' },
+      title: { text: `${(new Date(activityStartISO)).toLocaleString()}` },
+      xAxis: { categories: times.map(formatTime), title: { text: 'Tempo (hh:mm)' }, tickInterval: 10 },
+      yAxis: [
+        { title: { text: 'Frequenza cardiaca (BPM)' }, min: 0 },
+        { title: { text: 'Velocità (km/h)' }, opposite: true, min: 0 },
+        { title: { text: 'Altitudine (m)' }, min: 0, gridLineDashStyle: 'Dash' },
+        { title: { text: 'Pendenza (%)' }, opposite: true, min: -50, max: 50 }
+      ],
+      tooltip: {
+        shared: true, crosshairs: true,
+        formatter: function () {
+          const index = (this.points && this.points[0] && this.points[0].point) ? this.points[0].point.index : 0;
+          let s = `<b>${pointDateTimes[index] || ''}</b><br/>`;
+          this.points.forEach(point => {
+            if (point.series.name === 'Frequenza cardiaca') s += `${point.series.name}: ${point.y} BPM<br/>`;
+            else if (point.series.name === 'Velocità') s += `${point.series.name}: ${point.y} km/h<br/>`;
+            else if (point.series.name === 'Altitudine') s += `${point.series.name}: ${point.y} m<br/>`;
+            else if (point.series.name === 'Pendenza') s += `${point.series.name}: ${point.y} %<br/>`;
+          });
+          return s;
+        }
+      },
+      plotOptions: {
+        series: {
+          point: {
+            events: {
+              mouseOver: function () {
+                const idx = this.index;
+                if (coordinate && coordinate[idx]) {
+                  highlightMarker.setLatLng(coordinate[idx]);
+                  highlightMarker.setStyle({ opacity: 1, fillOpacity: 0.9 });
+                }
+              },
+              mouseOut: function () {
+                highlightMarker.setStyle({ opacity: 0, fillOpacity: 0 });
+              }
+            }
+          }
+        }
+      },
+      series: [
+        { name: 'Frequenza cardiaca', data: heartrates, yAxis: 0, color: '#e63946' },
+        { name: 'Velocità', data: speeds, yAxis: 1, color: '#1d3557' },
+        { name: 'Altitudine', data: altitudes, yAxis: 2, color: '#2a9d8f' },
+        { name: 'Pendenza', data: grade, yAxis: 3, color: '#ff9900' }
+      ],
+      credits: { enabled: false }
+    });
+  }
+
+  // =========================
+  // Utilità formattazione
+  // =========================
   function formatTime(seconds) {
     const totalMinutes = Math.floor(seconds / 60);
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
-    return `${hours}:${minutes.toString().padStart(2,'0')}`;
-}
+    return `${hours}:${String(minutes).padStart(2, '0')}`;
+  }
 
-  // Evento click sui link della tabella
-  $('#activities-table tbody').on('click', 'a.show-track', function (e) {
-    e.preventDefault();
-    var id = $(this).data('id');
-
-    if (polylines[id]) {
-      
-     // mostra solo la nuova traccia
-      selectedPolyline = polylines[id];
-      
-            $.each(polylines, function(key, polyline){
-                map.removeLayer(polyline);
-            });
-      
-
-        map.fitBounds(selectedPolyline.getBounds());
- 
-      // evidenzia il link attivo
-        $('a.show-track').removeClass('active-track');
-        $(this).addClass('active-track');
-        var activityId = $(this).data('id');
-        var activityDate = $(this).data('date');
-        var activeStreamPolyline = null;
-
-
-        // --- Richiesta API /routes/{id}/streams ---
-        $.ajax({
-          url: "https://www.strava.com/api/v3/activities/"+activityId+"/streams",
-          type: 'GET',
-          data: {
-            access_token: access_token, // token ottenuto da reAuthorize()
-            keys: 'latlng,heartrate,time,velocity_smooth,altitude,cadence',
-            key_by_type: true
-          },
-          success: function(streams) {
-            console.log(streams);
-            if (!streams.heartrate && !streams.velocity_smooth) {
-              $('#chart-container').html('<p class="text-warning">Nessun dato disponibile</p>');
-              return;
-            }
-            
-
-
-            
-            // Rimuovi la polyline precedente se esiste
-            if (activeStreamPolyline) {
-              map.removeLayer(activeStreamPolyline);
-            }
-            
-            var coordinate = streams.latlng.data
-            activeStreamPolyline = L.polyline(coordinate, {
-                color: 'blue',
-                weight: 2,
-                opacity: 0.7,
-                lineJoin: 'round'
-              }).addTo(map);
-
-
-              
-            polylines[activityId] = activeStreamPolyline;
-            const times = streams.time.data;
-            const heartrates = streams.heartrate ? streams.heartrate.data : [];
-            const speeds = streams.velocity_smooth 
-            ? streams.velocity_smooth.data.map(v => Math.round(v * 3.6)) // da m/s a km/h
-            : [];
-            const altitudes = streams.altitude ? streams.altitude.data : [];
-            const distance = streams.distance ? streams.distance.data : [];
-//            const cadence = streams.cadence ? streams.cadence.data : [];
-            
-            // Marker evidenziatore sulla mappa
-            let highlightMarker = L.circleMarker([0,0], {
-                radius: 6,
-                color: '#ff0000',
-                fillColor: '#ff0000',
-                opacity: 0,
-                fillOpacity: 0
-                }).addTo(map);
-                
-            // Calcolo data/ora per ogni punto
-            const startDateObj = new Date(activityDate);
-            const pointDateTimes = times.map(sec => {
-              let d = new Date(startDateObj.getTime() + sec * 1000);
-              return d.toLocaleString('it-IT'); // formato leggibile es. 11/09/2025, 14:35:22
-            });
-
-            Highcharts.chart('chart-container', {
-              chart: { type: 'spline',
-                        zoomType: 'x',   // zoom solo sull’asse tempo
-                        panning: true,
-                        panKey: 'shift'  // tieni premuto Shift per muovere il grafico
-              },
-              title: { text: `${activityDate}` },
-              xAxis: {
-                categories: times.map(formatTime),
-                title: { text: 'Tempo (hh:mm)' },
-                tickInterval: 10
-              },
-              yAxis: [{
-                title: { text: 'Frequenza cardiaca (BPM)' },
-                min: 0
-              }, {
-                title: { text: 'Velocità (km/h)' },
-                opposite: true,
-                min: 0
-              }, {
-                title: { text: 'Altitudine (m)' },
-                min: 0,
-                gridLineDashStyle: 'Dash'
-              },
-//              {
-//                title: { text: 'Cadenza' },
-//                opposite: true,
-//                min: 0
-//              }
-          ],
-                tooltip: {
-                  shared: true,
-                  crosshairs: true,
-                  formatter: function () {
-                    const index = this.points[0].point.index;
-                    let s = `<b>${pointDateTimes[index]}</b><br/>`;
-
-                    this.points.forEach(function (point) {
-                      if (point.series.name === 'Frequenza cardiaca') {
-                        s += `${point.series.name}: ${point.y} BPM<br/>`;
-                      } else if (point.series.name === 'Velocità') {
-                        s += `${point.series.name}: ${point.y} km/h<br/>`;
-                      } else if (point.series.name === 'Altitudine') {
-                        s += `${point.series.name}: ${point.y} m<br/>`;
-                      }
-//                      else if (point.series.name === 'Cadenza') {
-//                        s += `${point.series.name}: ${point.y} %<br/>`;
-//                      }
-                    });
-                    return s;
-                  }
-                },
-              plotOptions: {
-                series: {
-                    point: {
-                        events: {
-                            mouseOver: function () {
-                            const index = this.index;
-                                if (selectedPolyline) {
-                                const latlngs = coordinate;
-                                    if (latlngs[index]) {
-                                        highlightMarker.setLatLng(latlngs[index]);
-                                        highlightMarker.setStyle({ opacity: 1, fillOpacity: 0.9 });
-                                    }
-                                }
-                            },
-                            mouseOut: function () {
-                            highlightMarker.setStyle({ opacity: 0, fillOpacity: 0 });
-                            }
-                        }
-                    }   
-                }
-                },
-              series: [
-                { name: 'Frequenza cardiaca', data: heartrates, yAxis: 0, color: '#e63946' },
-                { name: 'Velocità', data: speeds, yAxis: 1, color: '#1d3557' },
-                { name: 'Altitudine', data: altitudes, yAxis: 2, color: '#2a9d8f' }
-//                ,
-//                { name: 'Cadenza', data: cadence, yAxis: 3, color: '#ff9900' }
-              ],
-              credits: { enabled: false }
-            });
-          },
-          error: function(jqXHR, textStatus, errorThrown) {
-            console.error("Errore API Strava streams:", textStatus, errorThrown);
-            $('#chart-container').html('<p class="text-danger">Impossibile caricare i battiti cardiaci</p>');
-          }
-        });
-    }
+  // =========================
+  // Filtro tipo attività (se esiste select #activityFilter)
+  // =========================
+  $('#activityFilter').on('change', function () {
+    const val = $(this).val();
+    table.column(2).search(val ? '^' + val + '$' : '', true, false).draw();
   });
 
+  // Bottone svuota cache (se presente)
+  $('#clearCacheBtn').on('click', function () {
+    if (!confirm('Vuoi svuotare la cache delle attività?')) return;
+    clearSavedActivities();
+    table.clear().draw();
+    Object.values(polylines).forEach(p => { if (p && map.hasLayer(p)) map.removeLayer(p); });
+    polylines = {};
+    logMessage("Cache cancellata manualmente");
+  });
+
+  // =========================
+  // Autenticazione (refresh token) e avvio flusso
+  // =========================
   function reAuthorize() {
     $.ajax({
       type: 'POST',
-      url: auth_link,
+      url: AUTH_LINK,
       data: {
         client_id: '170267',
         client_secret: '2a763ae8a5952c806420030f883b6d9c611c31a0',
         refresh_token: '1d09f95e93975a8d9d131e481b15b01ef63428b6',
         grant_type: 'refresh_token'
       }
-    })
-      .done(function (res) {
-        access_token = res.access_token; // salvo il token globalmente
-        getActivities(res, 1);        
-      })
-      .fail(function (jqXHR, textStatus, errorThrown) {
-        console.error("Errore durante l'autenticazione:", textStatus, errorThrown);
-        alert("Autenticazione fallita. Controlla le tue credenziali.");
-      });
+    }).done(function (res) {
+      access_token = res.access_token;
+      logMessage("Autenticazione OK, token ottenuto");
+      // prima mostra cache per renderizzazione rapida
+      loadAndRenderCache();
+      // poi scarica solo le nuove attività (se presenti) usando 'after'
+      fetchNewActivities(res);
+    }).fail(function (jqXHR, textStatus, errorThrown) {
+      logMessage(`Errore autenticazione: ${textStatus}`);
+      console.error("reAuthorize failed:", textStatus, errorThrown);
+    });
   }
 
   //reAuthorize();
