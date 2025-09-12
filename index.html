@@ -175,13 +175,14 @@
 <script>
 $(document).ready(function () {
   var access_token = null;
-  // all’avvio
-    loadSavedActivities();
+  
   const auth_link = "https://www.strava.com/oauth/token";
   var map = L.map('map');
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
+  
+  
 
   var polylines = {};       // tutte le tracce salvate per ID
   var selectedPolyline = null; // traccia attualmente evidenziata
@@ -193,6 +194,8 @@ $(document).ready(function () {
   $(document).ajaxStop(function () {
     $("#loader-overlay").hide();
   });
+  
+  
 
   var table = $('#activities-table').DataTable({
     language: {
@@ -207,6 +210,9 @@ $(document).ready(function () {
        .search(val ? '^' + val + '$' : '', true, false)
        .draw();
 });
+
+// all’avvio
+    loadSavedActivities();
 
     function saveActivities(activities) {
       const saved = JSON.parse(localStorage.getItem("savedActivities")) || [];
@@ -227,6 +233,50 @@ $(document).ready(function () {
   const saved = JSON.parse(localStorage.getItem("savedActivities")) || [];
   $.each(saved, function (index, activity) {
     // stesso codice che usi per disegnare polylines + popolare la tabella
+                //console.log(activity);
+              if (activity.map && activity.map.summary_polyline) {
+              var coordinates = L.Polyline.fromEncoded(activity.map.summary_polyline).getLatLngs();
+              var polyline = L.polyline(coordinates, {
+                color: 'blue',
+                weight: 2,
+                opacity: 0.7,
+                lineJoin: 'round'
+              }).addTo(map);
+
+              polylines[activity.id] = polyline;
+
+              // Centra la mappa solo sulla prima attività
+              if ( index === 0) {
+                map.fitBounds(polyline.getBounds());
+              }
+            }
+
+            var distanceKm = (activity.distance / 1000).toFixed(2);
+            var movingTimeMin = Math.round(activity.moving_time / 60);
+            var d = new Date(activity.start_date_local);
+            var type = activity.type;
+
+            var startDate = d.getFullYear() + "-" + ("0" + (d.getMonth()+1)).slice(-2) + "-" + 
+                            ("0"+d.getDate()).slice(-2) + " " + 
+                            ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+
+            var nameLink = `<a href="#" class="show-track" data-id="${activity.id}" data-date="${startDate}">${activity.name}</a>`;
+
+            // velocità media
+            var avgSpeed = activity.average_speed ? (activity.average_speed * 3.6).toFixed(1) : "-";
+
+            // frequenza cardiaca media
+            var avgHR = activity.average_heartrate ? activity.average_heartrate.toFixed(0) : "-";
+
+            table.row.add([
+              nameLink,
+              distanceKm,
+              type,
+              startDate,
+              movingTimeMin,
+              avgSpeed,
+              avgHR
+            ]).draw(false);
   });
 }
 
@@ -509,7 +559,7 @@ $(document).ready(function () {
       });
   }
 
-  reAuthorize();
+  //reAuthorize();
 });
 
 
