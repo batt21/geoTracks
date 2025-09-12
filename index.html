@@ -162,49 +162,32 @@
 
 <script>
 $(document).ready(function () {
-  var access_token = null;
-  
-  const auth_link = "https://www.strava.com/oauth/token";
+  // =========================
+  // Config & variabili globali
+  // =========================
+  const AUTH_LINK = "https://www.strava.com/oauth/token";
+  const STORAGE_KEY = "savedActivities";
+  let access_token = null;
+
+  // Leaflet / mappa
   var map = L.map('map');
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
-  
-  
 
-  var polylines = {};       // tutte le tracce salvate per ID
-  var selectedPolyline = null; // traccia attualmente evidenziata
-
-  // Loader overlay
-  $(document).ajaxStart(function () {
-    $("#loader-overlay").show();
-  });
-  $(document).ajaxStop(function () {
-    $("#loader-overlay").hide();
-  });
-  
-  
-
+  // DataTable
   var table = $('#activities-table').DataTable({
     language: { url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/it-IT.json' },
     pageLength: 10,
     order: [[3, 'desc']] // colonna 3 = "Data", ordinamento decrescente
   });
 
-  $('#activityFilter').on('change', function () {
-  const val = $(this).val();
-  table.column(2) // colonna "Tipo"
-       .search(val ? '^' + val + '$' : '', true, false)
-       .draw();
-});
+  // container per polylines e stream
+  var polylines = {};             // polyline summary per activity.id
+  var activeStreamPolyline = null;// polyline ad alta risoluzione dallo stream
+  var highlightMarker = null;     // marker che segue l'hover sul grafico
+  var selectedActivityId = null;  // activity id corrente selezionata
 
-// all’avvio
-    loadSavedActivities();
-
-    function saveActivities(activities) {
-      const saved = JSON.parse(localStorage.getItem("savedActivities")) || [];
-      const savedIds = saved.map(a => a.id);
-    }
   // loader / log
   $(document).ajaxStart(() => $("#loader-overlay").show());
   $(document).ajaxStop(() => $("#loader-overlay").hide());
@@ -227,59 +210,41 @@ $(document).ready(function () {
       console.warn("Errore parsing savedActivities:", e);
       return [];
     }
-    
-    function loadSavedActivities() {
-  const saved = JSON.parse(localStorage.getItem("savedActivities")) || [];
-  $.each(saved, function (index, activity) {
-    // stesso codice che usi per disegnare polylines + popolare la tabella
-                //console.log(activity);
-              if (activity.map && activity.map.summary_polyline) {
-              var coordinates = L.Polyline.fromEncoded(activity.map.summary_polyline).getLatLngs();
-              var polyline = L.polyline(coordinates, {
-                color: 'blue',
-                weight: 2,
-                opacity: 0.7,
-                lineJoin: 'round'
-              }).addTo(map);
+  }
 
-              polylines[activity.id] = polyline;
+  function setSavedActivities(arr) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+    } catch (e) {
+      console.error("Errore salvataggio savedActivities:", e);
+    }
+  }
 
-              // Centra la mappa solo sulla prima attività
-              if ( index === 0) {
-                map.fitBounds(polyline.getBounds());
-              }
-            }
+  // Legge la più recente start_date_local salvata e ritorna timestamp unix (s)
+  function getLatestSavedTimestamp() {
+    const saved = getSavedActivities();
+    if (!saved || saved.length === 0) return 0;
+    let maxTs = 0;
+    for (const a of saved) {
+      const t = Date.parse(a.start_date_local);
+      if (!isNaN(t) && t > maxTs) maxTs = t;
+    }
+    return Math.floor(maxTs / 1000); // in secondi
+  }
 
-            var distanceKm = (activity.distance / 1000).toFixed(2);
-            var movingTimeMin = Math.round(activity.moving_time / 60);
-            var d = new Date(activity.start_date_local);
-            var type = activity.type;
-
-            var startDate = d.getFullYear() + "-" + ("0" + (d.getMonth()+1)).slice(-2) + "-" + 
-                            ("0"+d.getDate()).slice(-2) + " " + 
-                            ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
-
-            var nameLink = `<a href="#" class="show-track" data-id="${activity.id}" data-date="${startDate}">${activity.name}</a>`;
-
-            // velocità media
-            var avgSpeed = activity.average_speed ? (activity.average_speed * 3.6).toFixed(1) : "-";
-
-            // frequenza cardiaca media
-            var avgHR = activity.average_heartrate ? activity.average_heartrate.toFixed(0) : "-";
-
-            table.row.add([
-              nameLink,
-              distanceKm,
-              type,
-              startDate,
-              movingTimeMin,
-              avgSpeed,
-              avgHR
-            ]).draw(false);
-  });
-}
-
-
+  // Salva solo i campi utili per minimizzare lo spazio
+  function pickActivityForStorage(activity) {
+    return {
+      id: activity.id,
+      name: activity.name,
+      distance: activity.distance,
+      moving_time: activity.moving_time,
+      start_date_local: activity.start_date_local,
+      type: activity.type,
+      average_speed: activity.average_speed || null,
+      average_heartrate: activity.average_heartrate || null,
+      map: (activity.map && activity.map.summary_polyline) ? { summary_polyline: activity.map.summary_polyline } : null
+    };
   }
 
   // Aggiunge solo nuove attività in localStorage e ritorna l'array delle attività aggiunte
@@ -620,8 +585,10 @@ $(document).ready(function () {
     });
   }
 
-  //reAuthorize();
+  // avviare tutto
+  reAuthorize();
 });
+
 
 
 </script>
