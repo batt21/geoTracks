@@ -61,71 +61,21 @@
   <div class="card shadow-sm mt-3">
   
     <div class="card-body">
-      <div id="log-box" style="margin-bottom: 10px; max-height:200px; overflow-y:auto; font-family:monospace; font-size:12px; border:1px solid #ccc; padding:5px; margin-top:10px; background:#f9f9f9;"></div>
-
       
 
       <!-- Filtro inline per tipo attività -->
       <div class="mb-2 filter-row">
         <label for="activityFilter" class="form-label mb-0">Filtra per tipo:</label>
         <select id="activityFilter" class="form-select">
-          <option value="">Tutti</option>
-          <option>AlpineSki</option>
-          <option>BackcountrySki</option>
-          <option>Badminton</option>
-          <option>Canoeing</option>
-          <option>Crossfit</option>
-          <option>EBikeRide</option>
-          <option>Elliptical</option>
-          <option>EMountainBikeRide</option>
-          <option>Golf</option>
-          <option>GravelRide</option>
-          <option>Handcycle</option>
-          <option>HighIntensityIntervalTraining</option>
-          <option>Hike</option>
-          <option>IceSkate</option>
-          <option>InlineSkate</option>
-          <option>Kayaking</option>
-          <option>Kitesurf</option>
-          <option>MountainBikeRide</option>
-          <option>NordicSki</option>
-          <option>Pickleball</option>
-          <option>Pilates</option>
-          <option>Racquetball</option>
-          <option>Ride</option>
-          <option>RockClimbing</option>
-          <option>RollerSki</option>
-          <option>Rowing</option>
-          <option>Run</option>
-          <option>Sail</option>
-          <option>Skateboard</option>
-          <option>Snowboard</option>
-          <option>Snowshoe</option>
-          <option>Soccer</option>
-          <option>Squash</option>
-          <option>StairStepper</option>
-          <option>StandUpPaddling</option>
-          <option>Surfing</option>
-          <option>Swim</option>
-          <option>TableTennis</option>
-          <option>Tennis</option>
-          <option>TrailRun</option>
-          <option>Velomobile</option>
-          <option>VirtualRide</option>
-          <option>VirtualRow</option>
-          <option>VirtualRun</option>
-          <option>Walk</option>
-          <option>WeightTraining</option>
-          <option>Wheelchair</option>
-          <option>Windsurf</option>
-          <option>Workout</option>
-          <option>Yoga</option>
+
         </select>
 
-        <!-- Bottone opzionale per svuotare la cache (non richiesto, ma comodo) -->
-        <button id="clearCacheBtn" class="btn btn-outline-secondary btn-sm">Svuota cache</button>
+        <button id="clearCacheBtn" class="btn btn-danger">Svuota cache</button>
+        <button id="redrawCacheBtn" class="btn btn-primary">Ridisegna attività</button>
+      
       </div>
 
+      
       <div class="table-responsive">
         <table id="activities-table" class="table table-sm table-striped table-bordered align-middle">
           <thead class="table-dark">
@@ -142,6 +92,7 @@
           <tbody></tbody>
         </table>
       </div>
+<div id="log-box" style="margin-bottom: 10px; max-height:200px; overflow-y:auto; font-family:monospace; font-size:12px; border:1px solid #ccc; padding:5px; margin-top:10px; background:#f9f9f9;"></div>
 
     </div>
   </div>
@@ -156,6 +107,7 @@
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <!-- Polyline decoder se serve (nel tuo ambiente) -->
 <script src="http://localhost/geoTracks/Polyline.encoded.js"></script>
+<script src="https://unpkg.com/@mapbox/polyline@1.1.1/src/polyline.js"></script>
 <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
 <script src="https://code.highcharts.com/highcharts.js"></script>
@@ -187,10 +139,17 @@ $(document).ready(function () {
   var activeStreamPolyline = null;// polyline ad alta risoluzione dallo stream
   var highlightMarker = null;     // marker che segue l'hover sul grafico
   var selectedActivityId = null;  // activity id corrente selezionata
+  var typeSelect = $("#activityFilter");
 
   // loader / log
   $(document).ajaxStart(() => $("#loader-overlay").show());
   $(document).ajaxStop(() => $("#loader-overlay").hide());
+  
+
+  L.Polyline.fromEncoded = function(encoded, options) {
+    const coords = polyline.decode(encoded).map(p => [p[0], p[1]]);
+    return L.polyline(coords, options);
+  };
 
   function logMessage(msg) {
     const logBox = document.getElementById("log-box");
@@ -276,6 +235,7 @@ $(document).ready(function () {
   function renderActivityOnMap(activity, fitIfFirst = true) {
     if (!activity.map || !activity.map.summary_polyline) return;
     try {
+          
       const coords = L.Polyline.fromEncoded(activity.map.summary_polyline).getLatLngs();
       const poly = L.polyline(coords, { color: 'blue', weight: 2, opacity: 0.7, lineJoin: 'round' }).addTo(map);
       polylines[activity.id] = poly;
@@ -309,56 +269,126 @@ $(document).ready(function () {
       return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;'})[s];
     });
   }
+  
+  // Converte la prima lettera in maiuscolo e la concatena con il resto della stringa
+  function capitalizeFirstLetter(str) {
+    if (str.length === 0) {
+        return ""; // Gestisce le stringhe vuote
+    }    
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+  
+  //aggiunge i tipi delle attività nella select di filtro
+  function addOptionInFilterSelect(type){
+      //aggiunge sempre "tutti" come prima voce 
+      if (typeSelect.find("option[value='tutti']").length === 0) {
+          typeSelect.append($("<option></option>").val("tutti").text(capitalizeFirstLetter("tutti")));
+      }
+      //agiunge gli altri tipi se non esistono già
+      if (typeSelect.find("option[value='"+type+"']").length === 0) {
+        typeSelect.append($("<option></option>").val(type).text(capitalizeFirstLetter(type)));
+      }
+  }
 
   // Carica cache e renderizza subito per UX reattiva
-  function loadAndRenderCache() {
-    const saved = getSavedActivities();
-    if (saved.length > 0) {
+    function loadAndRenderCache(t) {
+      const saved = getSavedActivities();
+      if (saved.length === 0) {
+        logMessage("Cache vuota");
+        return;
+      }
+      var type = t;
       logMessage(`Cache trovata: ${saved.length} attività`);
-      // render senza fitBounds (fit solo alla prima activity se desiderato)
-      saved.forEach((act, idx) => {
-        renderActivityOnMap(act, idx === 0);
-        renderActivityOnTable(act);
-      });
-    } else {
-      logMessage("Cache vuota");
+
+      // Mostra loader
+      $("#loader-overlay").show();
+      var count = 0;
+      // Delay per permettere al DOM di aggiornare il loader
+      setTimeout(() => {
+        // Rimuove eventuali polylines esistenti
+        Object.values(polylines).forEach(p => {
+          
+          if (p && map.hasLayer(p)) map.removeLayer(p);
+          
+        });
+        polylines = {};
+
+        // Pulisce la tabella
+        table.clear().draw();
+        
+
+        
+        // Ridisegna attività
+        saved.forEach((act, idx) => {
+          if(type === ''){
+            
+            renderActivityOnMap(act, idx === 0); // fitBounds solo alla prima
+            count = saved.length;
+          }else{
+              if (act.type === type){
+                renderActivityOnMap(act, idx === 0);
+                count++;
+              }
+          }
+        
+           //aggiunge in select il tipo della attività trovata 
+           addOptionInFilterSelect(act.type);
+
+           renderActivityOnTable(act);
+        });
+
+        // Nasconde loader
+        $("#loader-overlay").hide();
+
+        logMessage(`Ridisegnate ${count} attività dalla cache`);
+      }, 100); // 50ms bastano per forzare il rendering del loader
     }
-  }
+
+
 
   // =========================
   // API Strava: paginazione + after
   // =========================
   function getActivities(res, page = 1, after = null) {
-    const per_page = 30; // puoi adattare
-    let url = `https://www.strava.com/api/v3/athlete/activities?access_token=${res.access_token}&per_page=${per_page}&page=${page}`;
-    if (after && Number(after) > 0) url += `&after=${after}`;
+  const per_page = 30;
+  let url = `https://www.strava.com/api/v3/athlete/activities?access_token=${res.access_token}&per_page=${per_page}&page=${page}`;
+  if (after && Number(after) > 0) url += `&after=${after}`;
 
-    logMessage(`Chiamata API Strava: page=${page} ${after ? `(after=${after})` : '(tutte)'}`);
+  logMessage(`Chiamata API Strava: page=${page} ${after ? `(after=${after})` : '(tutte)'}`);
 
-    $.getJSON(url)
-      .done(function (data) {
-        if (!data || data.length === 0) {
-          logMessage("Nessuna attività ricevuta su questa pagina");
-          return;
-        }
-        logMessage(`Ricevute ${data.length} attività (page ${page})`);
-        // salviamo solo le nuove attività in cache e renderizziamo quelle nuove
-        const newActs = addNewActivitiesToStorage(data);
-        if (newActs.length > 0) {
-          logMessage(`Aggiunte ${newActs.length} attività alla cache`);
-          newActs.forEach(a => { renderActivityOnMap(a); renderActivityOnTable(a); });
-        } else {
-          logMessage("Nessuna delle attività ricevute era nuova");
-        }
-        // continua paginazione
-        // se la pagina ha meno risultati di per_page probabilmente fine, ma proviamo comunque a richiedere la successiva
-        getActivities(res, page + 1, after);
-      })
-      .fail(function (jqXHR, textStatus, errorThrown) {
-        logMessage(`Errore API: ${textStatus}`);
-        console.error("getActivities fail:", textStatus, errorThrown);
-      });
-  }
+  $.getJSON(url)
+    .done(function (data) {
+      if (!data || data.length === 0) {
+        logMessage("Nessuna attività ricevuta su questa pagina");
+        return;
+      }
+
+      logMessage(`Ricevute ${data.length} attività (page ${page})`);
+
+      const newActs = addNewActivitiesToStorage(data);
+      if (newActs.length > 0) {
+        logMessage(`Aggiunte ${newActs.length} attività alla cache`);
+        
+        // Disegna tutte le nuove attività sulla mappa
+        newActs.forEach((a, idx) => {
+          //aggiunge tipo attività nel filtro
+          addOptionInFilterSelect(a.type);
+          // FitBounds solo se è la prima polyline della mappa attuale
+          renderActivityOnMap(a, Object.keys(polylines).length === 0 && idx === 0);
+          renderActivityOnTable(a);
+        });
+      } else {            
+        logMessage("Nessuna delle attività ricevute era nuova");
+      }
+
+      // Continua paginazione
+      getActivities(res, page + 1, after);
+    })
+    .fail(function (jqXHR, textStatus, errorThrown) {
+      logMessage(`Errore API: ${textStatus}`);
+      console.error("getActivities fail:", textStatus, errorThrown);
+    });
+}
 
   // Decide cosa scaricare: tutto o solo dopo l'ultima attività in cache
   function fetchNewActivities(res) {
@@ -371,6 +401,51 @@ $(document).ready(function () {
       getActivities(res, 1, latestTs);
     }
   }
+  
+  // Ridisegna tutte le attività da localStorage
+    $('#redrawCacheBtn').on('click', function () {
+      logMessage("Ridisegno tutte le attività da localStorage...");
+    //tipo della attività selezionato
+    var type = $('#activityFilter').val();
+    // Mostra loader
+    $("#loader-overlay").show();
+
+    // Delay per permettere al DOM di aggiornare il loader
+    setTimeout(() => {
+        // Rimuove tutte le polylines dalla mappa
+        Object.values(polylines).forEach(p => {
+          if (p && map.hasLayer(p)) map.removeLayer(p);
+        });
+        polylines = {};
+
+        // Pulisce la tabella
+        table.clear().draw();
+
+        // Ridisegna attività da cache
+        const saved = getSavedActivities();
+        if (saved.length === 0) {
+          logMessage("Nessuna attività in cache da ridisegnare");
+          return;
+        }
+        var count = 0;
+        saved.forEach((act, idx) => {
+          if(type === ''){
+          renderActivityOnMap(act, idx === 0); // fitBounds solo sulla prima polyline
+          count = saved.length;
+        }else if(act.type === type){
+            renderActivityOnMap(act, idx === 0); // fitBounds solo sulla prima polyline
+            count++;
+        }
+          renderActivityOnTable(act);
+        });
+
+        // Nasconde loader
+        $("#loader-overlay").hide();
+
+        logMessage(`Ridisegnate ${count} attività dalla cache`);
+        }, 100); // 50ms bastano per forzare il rendering del loader
+    });
+
 
   // =========================
   // Streams & grafico (click sulla tabella)
@@ -437,6 +512,8 @@ $(document).ready(function () {
           polylines[activityId] = activeStreamPolyline;
           try { map.fitBounds(activeStreamPolyline.getBounds()); } catch (e) { /* ignore */ }
         }
+
+
 
         // prepara i dati per il grafico
         const times = streams.time && streams.time.data ? streams.time.data : [];
@@ -522,10 +599,29 @@ $(document).ready(function () {
         }
       },
       series: [
-        { name: 'Frequenza cardiaca', data: heartrates, yAxis: 0, color: '#e63946' },
-        { name: 'Velocità', data: speeds, yAxis: 1, color: '#1d3557' },
-        { name: 'Altitudine', data: altitudes, yAxis: 2, color: '#2a9d8f' },
-        { name: 'Pendenza', data: grade, yAxis: 3, color: '#ff9900' }
+        { name: 'Frequenza cardiaca', data: heartrates, yAxis: 0, color: '#e63946',  zIndex: 2 },
+        { name: 'Velocità', data: speeds, yAxis: 1, color: '#1d3557',  zIndex: 2 },
+        { name: 'Altitudine', data: altitudes, yAxis: 2, 
+            
+//            color: '#c7c9ca',       // Colore della linea
+//            fillColor: '#c7c9ca',
+             color: {
+                    linearGradient: {
+                        x1: 0,
+                        y1: 0,
+                        x2: 0,
+                        y2: 1
+                    },
+                    stops: [
+                        [0, '#808080'],
+                        [0.7, '#c7c9ca']
+                    ]
+                },
+
+           type: 'area', 
+           zIndex: 1
+          },
+        { name: 'Pendenza', data: grade, yAxis: 3, color: '#ff9900' ,  zIndex: 2}
       ],
       credits: { enabled: false }
     });
@@ -546,6 +642,7 @@ $(document).ready(function () {
   // =========================
   $('#activityFilter').on('change', function () {
     const val = $(this).val();
+    loadAndRenderCache(val);
     table.column(2).search(val ? '^' + val + '$' : '', true, false).draw();
   });
 
@@ -575,8 +672,10 @@ $(document).ready(function () {
     }).done(function (res) {
       access_token = res.access_token;
       logMessage("Autenticazione OK, token ottenuto");
+      
       // prima mostra cache per renderizzazione rapida
-      loadAndRenderCache();
+      loadAndRenderCache("");
+
       // poi scarica solo le nuove attività (se presenti) usando 'after'
       fetchNewActivities(res);
     }).fail(function (jqXHR, textStatus, errorThrown) {
