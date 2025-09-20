@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css"/>
 
   <style>
-    #map { height: 400px; width: 100%; margin-bottom: 20px; }
+    #map { height: 600px; width: 100%; margin-bottom: 20px; }
     #loader-overlay {
       display: none; position: fixed; top:0; left:0; width:100%; height:100%;
       background: rgba(0,0,0,0.5); z-index: 9999;
@@ -42,6 +42,9 @@
       font-size: 0.85rem;
       padding: 4px 6px;
     }
+    .log{margin-bottom: 10px; max-height:200px; overflow-y:auto; 
+           font-family:monospace; font-size:12px; border:1px solid #ccc; padding:5px; 
+           margin-top:10px; background:#f9f9f9}
 
     /* filtro inline */
     .filter-row { display:flex; align-items:center; gap:8px; }
@@ -50,14 +53,17 @@
 </head>
 <body class="bg-light">
 
-<div class="container-fluid p-3">
+<div class="container">
   <h1 class="mb-3 text-center">Strava Tracker</h1>
+  <div class="row">
+      
+  
 
-  <div class="d-flex">
-    <div id="map" style="flex: 1; height: 400px;"></div>
-    <div id="chart-container" style="flex: 1; height: 400px;"></div>    
+    <div id="map" class="col-12" ></div>
+    <div id="chart-container" class="col-12" ></div>    
+
   </div>
-
+<div class="row">
   <div class="card shadow-sm mt-3">
   
     <div class="card-body">
@@ -92,10 +98,11 @@
           <tbody></tbody>
         </table>
       </div>
-<div id="log-box" style="margin-bottom: 10px; max-height:200px; overflow-y:auto; font-family:monospace; font-size:12px; border:1px solid #ccc; padding:5px; margin-top:10px; background:#f9f9f9;"></div>
+      <div id="log-box" class="log"></div>
 
     </div>
   </div>
+  
 </div>
 
 <!-- Loader overlay -->
@@ -281,8 +288,8 @@ $(document).ready(function () {
   //aggiunge i tipi delle attività nella select di filtro
   function addOptionInFilterSelect(type){
       //aggiunge sempre "tutti" come prima voce 
-      if (typeSelect.find("option[value='tutti']").length === 0) {
-          typeSelect.append($("<option></option>").val("tutti").text(capitalizeFirstLetter("tutti")));
+      if (typeSelect.find("option[value='']").length === 0) {
+          typeSelect.append($("<option></option>").val("").text(capitalizeFirstLetter("tutti")));
       }
       //agiunge gli altri tipi se non esistono già
       if (typeSelect.find("option[value='"+type+"']").length === 0) {
@@ -405,6 +412,8 @@ $(document).ready(function () {
   // Ridisegna tutte le attività da localStorage
     $('#redrawCacheBtn').on('click', function () {
       logMessage("Ridisegno tutte le attività da localStorage...");
+    //nasconde grafici
+    $('#chart-container').hide();
     //tipo della attività selezionato
     var type = $('#activityFilter').val();
     // Mostra loader
@@ -459,7 +468,8 @@ $(document).ready(function () {
     if (!activityId) return;
     selectedActivityId = activityId;
 
-    
+    //nasconde grafici
+    $('#chart-container').show();
     // rimuove tutte le polylines dalla mappa e svuota l’oggetto polylines
     for (const id in polylines) {
       if (polylines[id] && map.hasLayer(polylines[id])) {
