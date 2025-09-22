@@ -1,1 +1,21 @@
 Visualizzazione delle tracce di Strava in OpenStreetMap
+
+reAuthorize()
+   ↓ (token OK)
+ loadAndRenderCache() → getSavedActivities() → renderActivityOnMap + renderActivityOnTable
+   ↓
+ fetchNewActivities()
+   ↓
+ getActivities() ──────────────┐
+   ↓                           │
+ addNewActivitiesToStorage()   │ (ricorsione per tutte le pagine)
+   ↓                           │
+ renderActivityOnMap()         │
+ renderActivityOnTable()       │
+                               │
+Utente clic su attività ───────┘
+   ↓
+ fetchActivityStreams()
+   ↓
+ renderActivityChart() ⇆ highlightMarker su mappa
+
