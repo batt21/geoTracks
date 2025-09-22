@@ -13,6 +13,10 @@
 
   <!-- DataTables Bootstrap 5 -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css"/>
+  
+  <!-- Plugin fullscreen -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.fullscreen@1.6.0/Control.FullScreen.css" />
+  
 
   <style>
     #map { height: 600px; width: 100%; margin-bottom: 20px; }
@@ -112,12 +116,17 @@
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.fullscreen@1.6.0/Control.FullScreen.js"></script>
 <!-- Polyline decoder se serve (nel tuo ambiente) -->
 <script src="http://localhost/geoTracks/Polyline.encoded.js"></script>
 <script src="https://unpkg.com/@mapbox/polyline@1.1.1/src/polyline.js"></script>
 <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
 <script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/modules/accessibility.js"></script>
+<script src="https://code.highcharts.com/modules/exporting.js"></script>
+<script src="https://code.highcharts.com/modules/export-data.js"></script>
+<script src="https://code.highcharts.com/modules/accessibility.js"></script>
 
 <script>
 $(document).ready(function () {
@@ -129,10 +138,50 @@ $(document).ready(function () {
   let access_token = null;
 
   // Leaflet / mappa
-  var map = L.map('map');
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  var map = L.map('map', {
+    fullscreenControl: true  // abilita il pulsante fullscreen
+  });
+  
+    // Layer OSM base
+  var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
+
+  // Layer CyclOSM
+  var cyclosm = L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors | Tiles style © CyclOSM',
+    maxZoom: 20,
+    subdomains: 'abc'
+  });
+
+  // Layer OpenTopoMap
+  var topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+    attribution: 'Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; OpenTopoMap',
+    maxZoom: 17
+  });
+
+  // Layer Satellite (Esri)
+  var esri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles &copy; Esri'
+  });
+
+  // Controllo layer
+  var baseMaps = {
+    "OpenStreetMap": osm,
+    "CyclOSM": cyclosm,
+    "OpenTopoMap": topo,
+    "Satellite": esri
+  };
+
+  L.control.layers(baseMaps).addTo(map);
+
+  // Eventi del fullscreen (opzionale)
+  map.on('enterFullscreen', function(){
+    console.log('Mappa a tutto schermo');
+  });
+  map.on('exitFullscreen', function(){
+    console.log('Mappa uscita da tutto schermo');
+  });
 
   // DataTable
   var table = $('#activities-table').DataTable({
@@ -244,7 +293,7 @@ $(document).ready(function () {
     try {
           
       const coords = L.Polyline.fromEncoded(activity.map.summary_polyline).getLatLngs();
-      const poly = L.polyline(coords, { color: 'blue', weight: 2, opacity: 0.7, lineJoin: 'round' }).addTo(map);
+      const poly = L.polyline(coords, { color: 'blue', weight: 2, opacity: 0.5, lineJoin: 'round' }).addTo(map);
       polylines[activity.id] = poly;
       // se è la prima polyline aggiunta, fitBounds
       if (fitIfFirst && Object.keys(polylines).length === 1) {
@@ -518,7 +567,7 @@ $(document).ready(function () {
         // costruisci la polyline ad alta risoluzione dal latlng (se presente)
         const coordinate = (streams.latlng && streams.latlng.data) ? streams.latlng.data : [];
         if (coordinate.length > 0) {
-          activeStreamPolyline = L.polyline(coordinate, { color: 'blue', weight: 2, opacity: 0.9 }).addTo(map);
+          activeStreamPolyline = L.polyline(coordinate, { color: 'blue', weight: 2, opacity: 0.5 }).addTo(map);
           polylines[activityId] = activeStreamPolyline;
           try { map.fitBounds(activeStreamPolyline.getBounds()); } catch (e) { /* ignore */ }
         }
