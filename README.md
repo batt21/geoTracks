@@ -1,5 +1,6 @@
 Visualizzazione delle tracce di Strava in OpenStreetMap
 
+```mermaid
 graph TD
     A[reAuthorize()] -->|Token OK| B[loadAndRenderCache()]
     B --> C[getSavedActivities()]
