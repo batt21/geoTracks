@@ -2,7 +2,7 @@ Visualizzazione delle tracce di Strava in OpenStreetMap
 
 ```mermaid
 graph TD
-    A[reAuthorize()] -->|Token OK| B[loadAndRenderCache()]
+    A[reAuthorize()] --> B[loadAndRenderCache()]
     B --> C[getSavedActivities()]
     C --> D[renderActivityOnMap]
     C --> E[renderActivityOnTable]
@@ -12,11 +12,12 @@ graph TD
     G --> H[addNewActivitiesToStorage()]
     H --> I[renderActivityOnMap]
     H --> J[renderActivityOnTable]
-    G -->|Ricorsione per tutte le pagine| G
+    G --> G[ricorsione per tutte le pagine]
 
     K[Utente clic su attività] --> L[fetchActivityStreams()]
     L --> M[renderActivityChart()]
     M --> N[highlightMarker su mappa]
     N --> M
+
 
 
